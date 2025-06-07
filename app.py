@@ -134,7 +134,7 @@ def collect_address():
     # 检查是否重复提交
     existing = session.query(AirdropAddress).filter_by(address=address).first()
     if existing:
-        return jsonify({'success': False, 'message': '该地址已提交过'}), 400
+        return jsonify({'success': False, 'message': '该地址已参加过空投活动'}), 200
 
     try:
         new_entry = AirdropAddress(

@@ -69,13 +69,13 @@ def get_messages():
 SMTP_SERVER = 'smtp.gmail.com'
 SMTP_PORT = 587
 GMAIL_USERNAME = 'memaoteam@gmail.com'
-GMAIL_PASSWORD = 'miabkxlspfrxmcrl'  # 注意使用"应用专用密码"，不是 Gmail 登录密码
+GMAIL_PASSWORD = 'nfdh fytg wmkc esbn'  # 注意使用"应用专用密码"，不是 Gmail 登录密码
 
 
 def send_reply_email(to_email, subject, content):
     try:
         msg = MIMEText(content, 'plain', 'utf-8')
-        msg['From'] = formataddr(("官方客服", GMAIL_USERNAME))
+        msg['From'] = formataddr(("MEMAO官方客服", GMAIL_USERNAME))
         msg['To'] = to_email
         msg['Subject'] = subject
 
@@ -102,23 +102,26 @@ def reply_message(contact_id):
         if not message:
             return jsonify({'success': False, 'message': '留言不存在'}), 404
 
-        message.replied = True
-        message.replay_content = reply_content
-        message.replied_at = datetime.now(timezone.utc)
-        session.commit()
-
-        # 发送邮件通知
+        # 发送邮件通知（先发送邮件）
         subject = '关于您留言的回复'
         email_sent = send_reply_email(message.email, subject, reply_content)
 
         if email_sent:
+            # 邮件发送成功再更新数据库
+            message.replied = True
+            message.replay_content = reply_content
+            message.replied_at = datetime.now(timezone.utc)
+            session.commit()
             return jsonify({'success': True, 'message': '回复成功，邮件已发送'})
         else:
+            # 邮件失败，不保存数据库
+            session.rollback()
             return jsonify({'success': True, 'message': '回复成功，但邮件发送失败'}), 200
 
     except Exception as e:
         session.rollback()
         return jsonify({'success': False, 'message': f'操作失败: {str(e)}'}), 500
+
 
 
 @app.route('/api/collect_address', methods=['POST'])

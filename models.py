@@ -3,6 +3,7 @@ from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime
 from sqlalchemy.orm import declarative_base, sessionmaker
 from datetime import datetime, timezone
 from urllib.parse import quote_plus
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # MySQL 配置项
 DB_NAME = 'memao_portal'
@@ -71,6 +72,19 @@ class TokenTransfer(Base):
     tx_hash = Column(String(255), nullable=False, unique=True)
     transferred_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     status = Column(String(20), default='pending')
+
+
+class User(Base):
+    __tablename__ = 'users'
+    id = Column(Integer, primary_key=True)
+    username = Column(String(64), unique=True, nullable=False)
+    password_hash = Column(String(128), nullable=False)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
 # 创建所有表结构
 Base.metadata.create_all(engine)

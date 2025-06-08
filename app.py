@@ -1,6 +1,6 @@
 from flask import Flask,request,jsonify
 from flask_cors import CORS
-from models import Message,session,AirdropAddress
+from models import Message,session,AirdropAddress,User
 from datetime import datetime,timedelta,timezone
 from email.message import EmailMessage
 from email.mime.text import MIMEText
@@ -152,6 +152,39 @@ def collect_address():
         session.rollback()
         return jsonify({'success': False, 'message': f'提交失败: {str(e)}'}), 500
 
+
+@app.route('/api/register', methods=['POST'])
+def register():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    if not username or not password:
+        return jsonify({'success': False, 'message': '用户名和密码不能为空'}), 400
+
+    # 用 session.query 代替 User.query
+    if session.query(User).filter_by(username=username).first():
+        return jsonify({'success': False, 'message': '用户名已存在'}), 400
+
+    user = User(username=username)
+    user.set_password(password)
+    session.add(user)
+    session.commit()
+    return jsonify({'success': True, 'message': '注册成功'})
+
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+
+    # 用 session.query 代替 User.query
+    user = session.query(User).filter_by(username=username).first()
+    if user and user.check_password(password):
+        token = 'fake-jwt-token-for-demo'  # 你后续可以替换成真正的 JWT
+        return jsonify({'success': True, 'token': token})
+    else:
+        return jsonify({'success': False, 'message': '用户名或密码错误'}), 401
 
 if __name__=='__main__':
     app.run(debug=True)

@@ -1,12 +1,12 @@
-from flask import Flask, jsonify, g
+from flask import Flask, jsonify
 from flask_cors import CORS
 from blueprints.contact import contact_bp
 from blueprints.airdrop import airdrop_bp
 from blueprints.auth import auth_bp
+from blueprints.withdraw import withdraw_bp
 from blueprints.checkin import checkin_bp
 from flask_migrate import Migrate
 from extensions import db
-
 
 def create_app():
     app = Flask(__name__)
@@ -24,17 +24,7 @@ def create_app():
     app.register_blueprint(airdrop_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(checkin_bp)
-
-    # 这里的 Session 和 g.session 创建、关闭用不到了
-    # 因为 Flask-SQLAlchemy 已经帮你管理 session 了，可以删掉
-    # @app.before_request
-    # def create_session():
-    #     g.session = Session()
-    #
-    # @app.teardown_request
-    # def remove_session(exception=None):
-    #     g.session.close()
-    #     Session.remove()
+    app.register_blueprint(withdraw_bp)
 
     @app.route('/')
     def health_check():
@@ -44,5 +34,11 @@ def create_app():
 
 
 if __name__ == '__main__':
+    from scheduler import start_scheduler  # ✅ 延迟导入，避免循环
+
     app = create_app()
+
+    # 启动 scheduler
+    start_scheduler(app)
+
     app.run(debug=True)

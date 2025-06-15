@@ -4,6 +4,25 @@ from sqlalchemy import UniqueConstraint, ForeignKey
 from sqlalchemy.orm import relationship
 from extensions import db  # 你的 extensions.py 中的 db = SQLAlchemy()
 
+
+from datetime import datetime, timezone
+
+class WithdrawalHistory(db.Model):
+    __tablename__ = 'withdrawal_history'
+
+    id = db.Column(db.Integer, primary_key=True)
+    wallet_user_id = db.Column(db.Integer, db.ForeignKey('wallet_users.id'), nullable=False)
+    amount = db.Column(db.Integer, nullable=False)  # 单位可以是最小计量单位，比如wei或points，确保一致
+    requested_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    status = db.Column(db.String(20), default='pending')  # pending, completed, rejected
+    processed_at = db.Column(db.DateTime, nullable=True)  # 处理完成时间
+    tx_hash = db.Column(db.String(100), nullable=True)  # 交易哈希
+    remarks = db.Column(db.Text, nullable=True)  # 失败原因或备注
+
+    wallet_user = db.relationship('WalletUser', backref='withdrawal_history')
+
+
+
 class WalletUser(db.Model):
     __tablename__ = 'wallet_users'
 

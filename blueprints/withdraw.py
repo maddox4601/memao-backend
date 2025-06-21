@@ -2,7 +2,8 @@ import json
 from flask import Blueprint, request, jsonify
 from models import db, WalletUser, WithdrawalHistory
 from datetime import datetime, timezone
-from utils.blockchain_batch_transfer import blockchain_batch_transfer
+from decimal import Decimal
+from utils.blockchain_batch_transfer import blockchain_batch_withdraw
 
 withdraw_bp = Blueprint('withdraw', __name__, url_prefix='/api/withdraw')
 
@@ -66,7 +67,7 @@ def get_withdrawal_history():
         history_data.append({
             'id': record.id,
             'amount': str(record.amount),  # 如果是 Decimal 建议转 string，防止前端解析问题
-            'requested_at': record.requested_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'requested_at': record.requested_at.astimezone(timezone.utc).isoformat(),
             'status': record.status
         })
 
@@ -81,37 +82,52 @@ def manual_process_withdrawals():
         return jsonify({'success': False, 'message': f'Processing failed: {str(e)}'}), 500
 
 
+BATCH_SIZE = 20
 def process_withdrawals():
-    pending_withdrawals = WithdrawalHistory.query.filter_by(status='pending').order_by(WithdrawalHistory.requested_at.asc()).all()
+    # 拉取所有 pending，没限制也行，或者加 limit 防止一次太多
+    pending_withdrawals = WithdrawalHistory.query.filter_by(status='pending').order_by(WithdrawalHistory.requested_at.asc()).limit(1000).all()
 
     if not pending_withdrawals:
         print("No pending withdrawals.")
         return
 
-    recipients = []
-    amounts_wei = []
-    withdrawal_ids = []
+    total = len(pending_withdrawals)
+    print(f"Total pending withdrawals fetched: {total}")
 
-    for wd in pending_withdrawals:
-        user = WalletUser.query.get(wd.wallet_user_id)
-        if user:
-            recipients.append(user.wallet_address)
-            amounts_wei.append(wd.amount * 10**18)
-            withdrawal_ids.append(wd.id)
+    for i in range(0, total, BATCH_SIZE):
+        batch = pending_withdrawals[i:i+BATCH_SIZE]
 
-    print(f"Processing withdrawals on chain: {list(zip(recipients, amounts_wei))}")
+        recipients = []
+        amounts_wei = []
+        withdrawal_ids = []
 
-    try:
-        success = blockchain_batch_transfer(recipients, amounts_wei)
+        for wd in batch:
+            user = WalletUser.query.get(wd.wallet_user_id)
+            if user:
+                recipients.append(user.wallet_address)
+                amounts_wei.append(int(Decimal(str(wd.amount)) * Decimal(10 ** 18)))
+                withdrawal_ids.append(wd.id)
 
-        if success:
-            print("Withdrawals processed successfully, updating DB records...")
-            WithdrawalHistory.query.filter(WithdrawalHistory.id.in_(withdrawal_ids)).update({'status': 'completed'}, synchronize_session=False)
-            db.session.commit()
-        else:
-            print("Blockchain transfer failed, keeping records pending for next retry.")
-            # 失败时保留 pending 状态，下一轮任务会继续处理
+        print(f"Processing batch {i//BATCH_SIZE + 1} with {len(recipients)} withdrawals: {list(zip(recipients, amounts_wei))}")
 
-    except Exception as e:
-        print(f"Blockchain transaction error: {str(e)}")
-        # 保持 pending，等待下次重试，不做任何 DB 更新
+        try:
+            success = blockchain_batch_withdraw(recipients, amounts_wei)  # 调用区块链批量提现接口
+
+            if success:
+                print(f"Batch {i//BATCH_SIZE + 1} processed successfully, updating DB...")
+                try:
+                    for withdrawal_id in withdrawal_ids:
+                        wd_record = WithdrawalHistory.query.get(withdrawal_id)
+                        if wd_record:
+                            wd_record.status = 'completed'
+                    db.session.commit()
+                except Exception as db_error:
+                    print(f"Database update error in batch {i//BATCH_SIZE + 1}: {str(db_error)}")
+                    db.session.rollback()
+            else:
+                print(f"Blockchain transfer failed in batch {i//BATCH_SIZE + 1}, will retry later.")
+                # 失败不更新，下一次任务重试
+
+        except Exception as e:
+            print(f"Blockchain transaction error in batch {i//BATCH_SIZE + 1}: {str(e)}")
+            db.session.rollback()

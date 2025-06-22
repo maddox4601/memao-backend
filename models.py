@@ -72,6 +72,10 @@ class Message(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     replied_at = db.Column(db.DateTime)
 
+
+# 空投模型
+
+
 class AirdropAddress(db.Model):
     __tablename__ = 'airdrop_addresses'
 
@@ -79,6 +83,19 @@ class AirdropAddress(db.Model):
     address = db.Column(db.String(255), nullable=False, unique=True)
     submitted_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     comment = db.Column(db.String(100))
+
+    # ✅ 新增防重复字段
+    is_distributed = db.Column(db.Boolean, default=False)  # 是否已发放
+    distributed_at = db.Column(db.DateTime, nullable=True)  # 发放时间（可为空）
+
+
+class AirdropConfig(db.Model):
+    __tablename__ = 'airdrop_config'
+
+    id = db.Column(db.Integer, primary_key=True)
+    is_task_enabled = db.Column(db.Boolean, default=True)  # 定时任务是否开启
+    batch_size = db.Column(db.Integer, default=20)  # 每批发放人数ETH defalut=20
+    airdrop_amount = db.Column(db.String(50), default=str(1 * 10 ** 18))
 
 class TokenTransfer(db.Model):
     __tablename__ = 'token_transfers'

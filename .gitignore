@@ -124,6 +124,8 @@ __pypackages__/
 celerybeat-schedule
 celerybeat.pid
 
+#flask_session
+/flask_session
 # SageMath parsed files
 *.sage.py
 

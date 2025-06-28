@@ -9,6 +9,8 @@ from blueprints.auth import auth_bp
 from blueprints.withdraw import withdraw_bp
 from blueprints.checkin import checkin_bp
 from extensions import db
+from dotenv import load_dotenv
+import os
 
 def create_app():
     app = Flask(__name__)
@@ -16,14 +18,14 @@ def create_app():
     # CORS 允许前端携带 Cookie
     CORS(app, supports_credentials=True)
 
-    # ===== 配置项 =====
-    app.config['SECRET_KEY'] = 'memao_secret_key'
-    app.config['JWT_SECRET'] = 'memao_secret_key' # 用于 session 签名、JWT 等
-    app.config['SESSION_TYPE'] = 'filesystem'  # 使用本地临时文件存储 session，可替换为 redis
-    app.config['SESSION_PERMANENT'] = False
+    # ===== 安全 & Session 配置 =====
+    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+    app.config['JWT_SECRET'] = os.getenv('JWT_SECRET')
+    app.config['SESSION_TYPE'] = os.getenv('SESSION_TYPE', 'filesystem')
+    app.config['SESSION_PERMANENT'] = os.getenv('SESSION_PERMANENT', 'False') == 'True'
 
     # ===== 数据库配置 =====
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Maddox1988%40@localhost:3306/memao_portal?charset=utf8mb4'
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DB_URI')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # ===== 初始化组件 =====

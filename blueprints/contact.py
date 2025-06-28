@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from models import Message
 from datetime import datetime, timezone
 from utils.email import send_reply_email
+from utils.auth_utils import jwt_required
 import re
 from extensions import db  # 你的 SQLAlchemy 实例
 
@@ -51,6 +52,7 @@ def get_contact_messages():
         return jsonify({'success': False, 'message': f'获取留言列表失败: {str(e)}'}), 500
 
 @contact_bp.route('/<int:contact_id>/reply', methods=['POST'])
+@jwt_required
 def reply_contact(contact_id):
     data = request.get_json() or {}
     reply_content = data.get('reply', '').strip()

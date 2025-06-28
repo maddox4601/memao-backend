@@ -3,6 +3,7 @@ from models import AirdropAddress, AirdropConfig
 from extensions import db
 from datetime import datetime, timezone
 from utils.blockchain_batch_airdrop import blockchain_batch_airdrop
+from utils.auth_utils import jwt_required
 import re
 
 airdrop_bp = Blueprint('airdrop', __name__, url_prefix='/api/airdrop')
@@ -41,6 +42,7 @@ def collect_address():
 # Admin管理员手动发放接口
 
 @airdrop_bp.route('/distribute', methods=['POST'])
+@jwt_required
 def manual_distribute():
     try:
         config = AirdropConfig.query.first()
@@ -91,6 +93,7 @@ def list_addresses():
 
 # Admin配置接口：控制定时任务开关和批量数量
 @airdrop_bp.route('/config', methods=['POST'])
+@jwt_required
 def update_config():
     try:
         data = request.get_json() or {}

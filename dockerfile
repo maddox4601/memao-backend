@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y \
 # 安装 Python 依赖（不使用 --user）
 COPY requirements.txt .
 RUN pip install --prefix=/install --no-cache-dir -r requirements.txt \
-    gunicorn==20.1.0 gevent==21.8.0
+    gunicorn==20.1.0 gevent==23.9.1
 
 # 阶段2：构建最终镜像
 FROM python:3.8-slim

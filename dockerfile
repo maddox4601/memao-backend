@@ -1,27 +1,30 @@
 # 阶段1：构建依赖
-FROM python:3.8-slim as builder  # 明确指定 3.8 版本
+FROM python:3.8-slim as builder
 WORKDIR /memao-backend
 
-# 安装系统依赖（如需编译C扩展，如MySQLclient）
+# 安装系统构建依赖（如需编译MySQLclient）
 RUN apt-get update && apt-get install -y \
     gcc python3-dev default-libmysqlclient-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# 安装Python依赖
+# 安装 Python 依赖（不污染全局环境）
 COPY requirements.txt .
-RUN pip install --user -r requirements.txt gunicorn==20.1.0 gevent==21.8.0  # 注意 gevent 版本兼容性
+RUN pip install --user -r requirements.txt gunicorn==20.1.0 gevent==21.8.0
 
-# 阶段2：运行环境
-FROM python:3.8-slim  # 保持与构建阶段一致
+# 阶段2：构建最终镜像
+FROM python:3.8-slim
 WORKDIR /memao-backend
 
-# 从builder阶段复制已安装的依赖
+# 拷贝依赖和项目文件
 COPY --from=builder /root/.local /root/.local
 COPY . .
 
-# 设置环境变量
-ENV PATH=/root/.local/bin:$PATH \
-    PYTHONUNBUFFERED=1 \
-    GUNICORN_CMD_ARGS="--workers=4 --bind=:5000 --timeout=120 --worker-class=gevent"
+# 设置 PATH 和常用环境变量
+ENV PATH="/root/.local/bin:$PATH" \
+    PYTHONUNBUFFERED=1
 
+# 暴露 Gunicorn 端口（可选）
+EXPOSE 5000
+
+# 启动命令
 CMD ["gunicorn", "app:app"]

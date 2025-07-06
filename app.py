@@ -3,6 +3,7 @@ from flask_cors import CORS
 from flask_session import Session
 from flask_migrate import Migrate
 
+
 from blueprints.contact import contact_bp
 from blueprints.airdrop import airdrop_bp
 from blueprints.auth import auth_bp

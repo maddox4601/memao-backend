@@ -2,8 +2,6 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_session import Session
 from flask_migrate import Migrate
-
-
 from blueprints.contact import contact_bp
 from blueprints.airdrop import airdrop_bp
 from blueprints.auth import auth_bp
@@ -12,6 +10,8 @@ from blueprints.checkin import checkin_bp
 from extensions import db
 from dotenv import load_dotenv
 import os
+
+load_dotenv()  # ✅ 确保 .env 加载（建议保留）
 
 def create_app():
     app = Flask(__name__)
@@ -54,4 +54,4 @@ if __name__ == '__main__':
 
     app = create_app()
     start_scheduler(app)
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000)

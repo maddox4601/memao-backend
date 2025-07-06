@@ -34,4 +34,4 @@ ENV PYTHONUNBUFFERED=1
 EXPOSE 5000
 
 # 启动 Gunicorn
-CMD ["gunicorn", "-w", "3", "-k", "gevent", "-b", "0.0.0.0:5000", "app:app"]
+CMD ["gunicorn", "-w", "3", "-k", "gevent", "-b", "0.0.0.0:5000", "wsgi:app"]

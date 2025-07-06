@@ -28,6 +28,8 @@ services:
 
   mysql:
     image: mysql:8.0
+    ports:
+      - "4406:3306"
     env_file: .env
     environment:
       - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}

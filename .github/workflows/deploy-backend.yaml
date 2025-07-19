@@ -1,0 +1,80 @@
+name: Deploy Flask Backend (Master)
+
+on:
+  push:
+    branches:
+      - master  # 明确使用master分支
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        ref: master  # 明确检出master分支
+
+    - name: Set up SSH
+      uses: webfactory/ssh-agent@v0.7.0
+      with:
+        ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+
+    - name: Verify SSH Connection
+      run: |
+        ssh -T -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} exit
+        if [ $? -ne 0 ]; then
+          echo "::error::SSH连接测试失败"
+          exit 1
+        fi
+
+    - name: Deploy via SSH
+      run: |
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+        set -e
+        echo "▶️ [Master] 开始生产环境部署..."
+        
+        # 验证部署目录
+        DEPLOY_DIR="/root/memao-backend"
+        if [ ! -d "$DEPLOY_DIR" ]; then
+          echo "::error::部署目录不存在: $DEPLOY_DIR"
+          exit 1
+        fi
+
+        # 进入项目目录
+        cd "$DEPLOY_DIR" || exit 1
+        
+        # 拉取最新代码
+        echo "🔄 同步master分支..."
+        git fetch origin master
+        git checkout master
+        git reset --hard origin/master || {
+          echo "::error::Git同步失败"
+          exit 1
+        }
+
+        # 检查文件变化
+        echo "📄 文件变更检查:"
+        git diff --name-only HEAD@{1} HEAD
+
+        # 重建容器
+        echo "🐳 重建Docker服务..."
+        docker compose down --timeout 30 || true
+        
+        if ! docker compose up -d --build; then
+          echo "::error::Docker部署失败"
+          docker logs memao-backend-backend-1 2>&1 | tail -n 50
+          exit 1
+        fi
+
+        # 健康检查
+        echo "🩺 服务健康检查..."
+        sleep 10
+        if ! docker ps --filter "name=memao-backend" --format "table {{.Names}}\t{{.Status}}" | grep "(healthy)"; then
+          echo "::warning::容器未显示healthy状态"
+          docker compose logs --tail=50
+        fi
+
+        echo "✅ [Master] 生产环境部署完成"
+        EOF

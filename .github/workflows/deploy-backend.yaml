@@ -62,9 +62,9 @@ jobs:
         echo "⏳ Waiting for MySQL to be ready..."
         DB_READY=false
         for i in $(seq 1 $DB_WAIT_TIMEOUT); do
-          if docker compose logs mysql-1 | grep -q "ready for connections"; then
+          if docker compose logs mysql | grep -q "ready for connections"; then
             # Additional check for socket creation
-            if docker compose exec mysql-1 ls /var/run/mysqld/mysqld.sock &>/dev/null; then
+            if docker compose exec mysql ls /var/run/mysqld/mysqld.sock &>/dev/null; then
               DB_READY=true
               break
             fi
@@ -75,7 +75,7 @@ jobs:
 
         if ! $DB_READY; then
           echo "::error::MySQL startup timed out"
-          docker compose logs mysql-1
+          docker compose logs mysql
           exit 1
         fi
 

@@ -12,7 +12,7 @@ from extensions import db
 from dotenv import load_dotenv
 import os
 
-load_dotenv()  # ✅ 确保 .env 加载（建议保留）
+load_dotenv()  # ✅ 确保 .envlocal 加载（建议保留）
 
 def create_app():
     app = Flask(__name__)

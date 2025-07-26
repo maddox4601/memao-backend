@@ -5,7 +5,7 @@ import traceback
 from web3.exceptions import ContractLogicError
 from dotenv import load_dotenv
 
-# 加载 .env 配置
+# 加载 .envlocal 配置
 load_dotenv()
 
 # 读取环境变量

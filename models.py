@@ -71,6 +71,7 @@ class Message(db.Model):
     replay_content = db.Column(db.String(1000))
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     replied_at = db.Column(db.DateTime)
+    status = db.Column(db.String(20), default='normal')  # normal | ignored
 
 
 # 空投模型

@@ -67,6 +67,17 @@ jobs:
           docker logs memao-backend-backend-1 2>&1 | tail -n 50
           exit 1
         fi
+        
+        # 等待容器启动完成（防止 exec 报错）
+        echo "⏳ 等待容器启动..."
+        sleep 5
+
+        # 升级数据库
+        echo "🗃️ 执行数据库迁移..."
+        if ! docker compose exec -T backend flask db upgrade; then
+          echo "::error::数据库升级失败"
+          exit 1
+        fi
 
         # 健康检查
         echo "🩺 服务健康检查..."

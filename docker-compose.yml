@@ -4,7 +4,7 @@ services:
   backend:
     build: .
     image: ccr.ccs.tencentyun.com/your-namespace/memao-backend:1.0.0
-    env_file: .env
+    env_file: .envlocal
     environment:
       - DB_URI=${DB_URI}
       - GUNICORN_CMD_ARGS=--workers=3 --bind=:5000 --timeout=120 --worker-class=gevent
@@ -30,7 +30,7 @@ services:
     image: mysql:8.0
     ports:
       - "4406:3306"
-    env_file: .env
+    env_file: .envlocal
     environment:
       - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
       - MYSQL_USER=${DB_USER}

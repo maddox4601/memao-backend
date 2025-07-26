@@ -6,7 +6,7 @@ from web3.exceptions import ContractLogicError
 from dotenv import load_dotenv
 from models import AirdropConfig
 
-# 加载 .env 配置
+# 加载 .envlocal 配置
 load_dotenv()
 
 # 环境变量

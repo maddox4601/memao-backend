@@ -3,7 +3,7 @@ name: Deploy Flask Backend (Master)
 on:
   push:
     branches:
-      - master  # 明确使用master分支
+      - master
 
 jobs:
   deploy:
@@ -14,7 +14,22 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
       with:
-        ref: master  # 明确检出master分支
+        ref: master
+        fetch-depth: 0  # 获取完整提交历史
+
+    - name: Verify Migrations
+      run: |
+        # 检查是否有未提交的迁移文件
+        if git status -s alembic/versions/ | grep -q "^ M"; then
+          echo "::error::存在未提交的数据库迁移文件！"
+          git status alembic/versions/
+          exit 1
+        fi
+
+        # 检查本次提交是否包含迁移文件
+        if [ "$(git diff --name-only origin/master...HEAD | grep -c 'alembic/versions/')" -eq 0 ]; then
+          echo "::notice::本次提交未包含数据库迁移文件"
+        fi
 
     - name: Set up SSH
       uses: webfactory/ssh-agent@v0.7.0
@@ -35,8 +50,14 @@ jobs:
         set -e
         echo "▶️ [Master] 开始生产环境部署..."
         
+        # 环境变量配置
+        export DEPLOY_DIR="/root/memao-backend"
+        export LOG_FILE="/tmp/deploy_$(date +%Y%m%d%H%M%S).log"
+        
+        # 记录详细日志
+        exec > >(tee -a "$LOG_FILE") 2>&1
+
         # 验证部署目录
-        DEPLOY_DIR="/root/memao-backend"
         if [ ! -d "$DEPLOY_DIR" ]; then
           echo "::error::部署目录不存在: $DEPLOY_DIR"
           exit 1
@@ -64,28 +85,57 @@ jobs:
         
         if ! docker compose up -d --build; then
           echo "::error::Docker部署失败"
-          docker logs memao-backend-backend-1 2>&1 | tail -n 50
+          docker compose logs --tail=50
           exit 1
         fi
         
-        # 等待容器启动完成（防止 exec 报错）
-        echo "⏳ 等待容器启动..."
-        sleep 5
+        # 等待容器启动
+        echo "⏳ 等待容器启动(10秒)..."
+        sleep 10
 
-        # 升级数据库
+        # 数据库迁移（新版优化流程）
         echo "🗃️ 执行数据库迁移..."
-        if ! docker compose exec -T backend flask db upgrade; then
-          echo "::error::数据库升级失败"
+        DB_MIGRATION_LOG="/tmp/db_migration_$(date +%s).log"
+        docker compose exec -T backend bash -c "
+          set -e
+          export FLASK_APP=app.py
+          export PYTHONPATH=/app
+          
+          echo '=== 当前数据库版本 ==='
+          flask db current || true
+          
+          echo '=== 标记当前版本 ==='
+          flask db stamp head 2>&1
+          
+          echo '=== 执行迁移 ==='
+          flask db upgrade 2>&1
+          
+          echo '=== 迁移后版本 ==='
+          flask db current
+        " | tee "$DB_MIGRATION_LOG"
+        
+        # 检查迁移是否成功
+        if grep -q "ERROR" "$DB_MIGRATION_LOG"; then
+          echo "::error::数据库迁移失败"
+          cat "$DB_MIGRATION_LOG"
           exit 1
         fi
 
         # 健康检查
         echo "🩺 服务健康检查..."
-        sleep 10
+        sleep 15
         if ! docker ps --filter "name=memao-backend" --format "table {{.Names}}\t{{.Status}}" | grep "(healthy)"; then
           echo "::warning::容器未显示healthy状态"
           docker compose logs --tail=50
+          # 非关键错误不终止流程
         fi
 
         echo "✅ [Master] 生产环境部署完成"
+        echo "详细日志见: $LOG_FILE"
         EOF
+
+    - name: Notify Success
+      if: success()
+      run: |
+        echo "部署成功完成！"
+        # 可添加通知逻辑（如Slack/邮件）

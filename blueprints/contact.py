@@ -45,11 +45,32 @@ def get_contact_messages():
             'replied': msg.replied,
             'replay_content': msg.replay_content,  # 你这里字段叫 replay_content，建议数据库字段改成 reply_content
             'created_at': msg.created_at.strftime('%Y-%m-%d %H:%M:%S') if msg.created_at else None,
-            'replied_at': msg.replied_at.strftime('%Y-%m-%d %H:%M:%S') if msg.replied_at else None
+            'replied_at': msg.replied_at.strftime('%Y-%m-%d %H:%M:%S') if msg.replied_at else None,
+            'status': msg.status
         } for msg in messages]
         return jsonify({'success': True, 'data': data})
     except Exception as e:
         return jsonify({'success': False, 'message': f'获取留言列表失败: {str(e)}'}), 500
+
+
+@contact_bp.route('/<int:contact_id>/ignore', methods=['POST'])
+@jwt_required
+def ignore_contact(contact_id):
+    try:
+        message = Message.query.get(contact_id)
+        if not message:
+            return jsonify({'success': False, 'message': '留言不存在'}), 404
+
+        if message.status == 'ignored':
+            return jsonify({'success': False, 'message': '留言已被忽略'}), 400
+
+        message.status = 'ignored'
+        db.session.commit()
+        return jsonify({'success': True, 'message': '留言已标记为忽略'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'操作失败: {str(e)}'}), 500
+
 
 @contact_bp.route('/<int:contact_id>/reply', methods=['POST'])
 @jwt_required

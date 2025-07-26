@@ -7,6 +7,7 @@ from blueprints.airdrop import airdrop_bp
 from blueprints.auth import auth_bp
 from blueprints.withdraw import withdraw_bp
 from blueprints.checkin import checkin_bp
+from geoip_utils.geoip_bp import geoip_bp
 from extensions import db
 from dotenv import load_dotenv
 import os
@@ -40,6 +41,7 @@ def create_app():
     app.register_blueprint(auth_bp)
     app.register_blueprint(checkin_bp)
     app.register_blueprint(withdraw_bp)
+    app.register_blueprint(geoip_bp)
 
     # 健康检查
     @app.route('/')

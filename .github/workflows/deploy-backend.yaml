@@ -2,33 +2,37 @@ name: Deploy Flask Backend (Master)
 
 on:
   push:
-    branches:
-      - master
+    branches: [ master ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    env:
+      FLASK_APP: "app.py"
+      DB_RETRY_TIMEOUT: 30  # 数据库等待超时(秒)
 
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
       with:
         ref: master
-        fetch-depth: 0  # 获取完整提交历史
+        fetch-depth: 0
 
-    - name: Verify Migrations
+    - name: Validate Migrations
       run: |
-        # 检查是否有未提交的迁移文件
-        if git status -s alembic/versions/ | grep -q "^ M"; then
-          echo "::error::存在未提交的数据库迁移文件！"
+        # 检查未提交的迁移文件
+        if [ -n "$(git status -s alembic/versions/)" ]; then
+          echo "::error::存在未提交的迁移文件:"
           git status alembic/versions/
           exit 1
         fi
 
-        # 检查本次提交是否包含迁移文件
-        if [ "$(git diff --name-only origin/master...HEAD | grep -c 'alembic/versions/')" -eq 0 ]; then
-          echo "::notice::本次提交未包含数据库迁移文件"
+        # 检查迁移文件冲突
+        if [ $(flask db heads | wc -l) -gt 1 ]; then
+          echo "::error::存在多个迁移HEAD版本:"
+          flask db heads
+          exit 1
         fi
 
     - name: Set up SSH
@@ -36,106 +40,115 @@ jobs:
       with:
         ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
 
-    - name: Verify SSH Connection
-      run: |
-        ssh -T -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} exit
-        if [ $? -ne 0 ]; then
-          echo "::error::SSH连接测试失败"
-          exit 1
-        fi
-
     - name: Deploy via SSH
       run: |
         ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-        set -e
-        echo "▶️ [Master] 开始生产环境部署..."
+        set -eo pipefail
+        echo "▶️ [Master] 生产环境部署启动..."
         
-        # 环境变量配置
+        # 环境配置
         export DEPLOY_DIR="/root/memao-backend"
-        export LOG_FILE="/tmp/deploy_$(date +%Y%m%d%H%M%S).log"
+        export TIMESTAMP=$(date +%Y%m%d%H%M%S)
+        export LOG_FILE="/tmp/deploy_${TIMESTAMP}.log"
+        export DB_BACKUP_FILE="/backups/db_pre_deploy_${TIMESTAMP}.sql"
         
-        # 记录详细日志
+        # 日志记录
         exec > >(tee -a "$LOG_FILE") 2>&1
 
-        # 验证部署目录
-        if [ ! -d "$DEPLOY_DIR" ]; then
-          echo "::error::部署目录不存在: $DEPLOY_DIR"
-          exit 1
-        fi
-
-        # 进入项目目录
-        cd "$DEPLOY_DIR" || exit 1
-        
-        # 拉取最新代码
-        echo "🔄 同步master分支..."
-        git fetch origin master
-        git checkout master
-        git reset --hard origin/master || {
-          echo "::error::Git同步失败"
-          exit 1
+        # 0. 数据库备份
+        echo "💾 数据库备份..."
+        docker compose exec -T db \
+          mysqldump -u${{ secrets.DB_USER }} -p"${{ secrets.DB_PASSWORD }}" ${{ secrets.DB_NAME }} > "$DB_BACKUP_FILE" || {
+          echo "::warning::数据库备份失败（继续部署）"
         }
 
-        # 检查文件变化
-        echo "📄 文件变更检查:"
-        git diff --name-only HEAD@{1} HEAD
+        # 1. 代码同步
+        cd "$DEPLOY_DIR" || exit 1
+        echo "🔄 同步代码..."
+        git fetch --tags origin master
+        git checkout -B master origin/master
+        git reset --hard origin/master
 
-        # 重建容器
+        # 2. 检测迁移变更
+        MIGRATION_CHANGED=$(git diff --name-only HEAD@{1} HEAD | grep -q "alembic/versions/" && echo true || echo false)
+        echo "🔍 迁移文件变更: $MIGRATION_CHANGED"
+
+        # 3. 服务重建
         echo "🐳 重建Docker服务..."
-        docker compose down --timeout 30 || true
-        
-        if ! docker compose up -d --build; then
-          echo "::error::Docker部署失败"
+        docker compose down --timeout 30
+        docker compose up -d --build
+
+        # 4. 容器健康检查（带重试）
+        echo "🩺 等待服务就绪..."
+        for i in $(seq 1 6); do
+          if docker compose ps | grep -q "(healthy)"; then
+            break
+          fi
+          [ $i -eq 6 ] && {
+            echo "::error::容器启动超时"
+            docker compose logs
+            exit 1
+          }
+          sleep 5
+          echo "尝试 $i/6..."
+        done
+
+        # 5. 数据库迁移（条件执行）
+        if $MIGRATION_CHANGED; then
+          echo "🗃️ 执行数据库迁移..."
+          docker compose exec -T backend bash -c "
+            set -eo pipefail
+            export PYTHONPATH=/app
+            
+            # 等待数据库就绪
+            for i in \$(seq 1 $DB_RETRY_TIMEOUT); do
+              if flask db current &>/dev/null; then
+                break
+              fi
+              [ \$i -eq $DB_RETRY_TIMEOUT ] && {
+                echo '::error::数据库连接超时'
+                exit 1
+              }
+              sleep 1
+            done
+
+            echo '=== 迁移前版本 ==='
+            flask db current || true
+            
+            echo '=== 执行迁移 ==='
+            if ! flask db upgrade 2>&1; then
+              echo '::error::迁移执行失败，尝试回滚...'
+              flask db downgrade -1
+              exit 1
+            fi
+            
+            echo '=== 迁移后版本 ==='
+            flask db current
+          " | tee "/tmp/db_migration_${TIMESTAMP}.log"
+        else
+          echo "⏩ 跳过数据库迁移（无变更）"
+        fi
+
+        # 6. 最终验证
+        echo "✅ 验证部署..."
+        if ! docker compose exec -T backend curl -s http://localhost/health | grep -q "healthy"; then
+          echo "::error::健康检查失败"
           docker compose logs --tail=50
           exit 1
         fi
-        
-        # 等待容器启动
-        echo "⏳ 等待容器启动(10秒)..."
-        sleep 10
 
-        # 数据库迁移（新版优化流程）
-        echo "🗃️ 执行数据库迁移..."
-        DB_MIGRATION_LOG="/tmp/db_migration_$(date +%s).log"
-        docker compose exec -T backend bash -c "
-          set -e
-          export FLASK_APP=app.py
-          export PYTHONPATH=/app
-          
-          echo '=== 当前数据库版本 ==='
-          flask db current || true
-          
-          echo '=== 标记当前版本 ==='
-          flask db stamp head 2>&1
-          
-          echo '=== 执行迁移 ==='
-          flask db upgrade 2>&1
-          
-          echo '=== 迁移后版本 ==='
-          flask db current
-        " | tee "$DB_MIGRATION_LOG"
-        
-        # 检查迁移是否成功
-        if grep -q "ERROR" "$DB_MIGRATION_LOG"; then
-          echo "::error::数据库迁移失败"
-          cat "$DB_MIGRATION_LOG"
-          exit 1
-        fi
-
-        # 健康检查
-        echo "🩺 服务健康检查..."
-        sleep 15
-        if ! docker ps --filter "name=memao-backend" --format "table {{.Names}}\t{{.Status}}" | grep "(healthy)"; then
-          echo "::warning::容器未显示healthy状态"
-          docker compose logs --tail=50
-          # 非关键错误不终止流程
-        fi
-
-        echo "✅ [Master] 生产环境部署完成"
-        echo "详细日志见: $LOG_FILE"
+        echo "🎉 部署成功完成"
+        echo "日志文件: $LOG_FILE"
+        echo "数据库备份: $DB_BACKUP_FILE"
         EOF
 
-    - name: Notify Success
-      if: success()
+    - name: Post-Deploy Notification
+      if: always()
       run: |
-        echo "部署成功完成！"
-        # 可添加通知逻辑（如Slack/邮件）
+        if [ "${{ job.status }}" == "success" ]; then
+          echo "✅ 生产环境部署成功"
+          # 可添加成功通知（如Slack/邮件）
+        else
+          echo "❌ 部署失败！需要人工干预"
+          # 可添加告警通知
+        fi

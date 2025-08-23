@@ -82,38 +82,39 @@ jobs:
         docker compose exec -T backend bash -c "
           set -eo pipefail
           export PYTHONPATH=/app
-
-          # Hard-coded DB config to avoid env issues
+        
           DB_HOST=mysql
           DB_PORT=3306
           DB_USER=memao_prod_user
           DB_PASSWORD='Maddox1988@'
-
-          # Wait for DB connectivity
+        
+          # Wait for DB connectivity via Flask
           for i in \$(seq 1 60); do
-            if mysql -h\$DB_HOST -P\$DB_PORT -u\$DB_USER -p\$DB_PASSWORD -e 'SELECT 1;' &>/dev/null; then
+            if flask db current &>/dev/null; then
+              echo 'DB connected ✅'
               break
             fi
             [ \$i -eq 60 ] && {
-              echo '::error::Failed to connect to database'
+              echo '::error::Failed to connect to database via flask'
               exit 1
             }
             sleep 2
           done
-
+        
           echo '=== Current DB Revision ==='
           flask db current || true
-
+        
           echo '=== Executing Migration ==='
           if ! flask db upgrade 2>&1; then
             echo '::error::Migration failed, attempting rollback...'
             flask db downgrade -1
             exit 1
           fi
-
+        
           echo '=== Migration Complete ==='
           flask db current
         " | tee "/tmp/migration_${TIMESTAMP}.log"
+
 
         # 5. Final verification
         echo "✅ Verifying deployment..."

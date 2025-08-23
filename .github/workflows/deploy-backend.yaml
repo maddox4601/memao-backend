@@ -135,3 +135,4 @@ jobs:
           echo "✅ Production deployment completed"
         else
           echo "❌ Deployment failed!"
+        fi

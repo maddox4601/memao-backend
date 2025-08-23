@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from datetime import datetime, timedelta, date
 from sqlalchemy.exc import SQLAlchemyError
-from models import WalletUser, CheckinHistory, UserPointsAccount
+from models import WalletUser, CheckinHistory, UserPointsAccount,PointsHistory,MiningHistory
 from extensions import db  # 你的SQLAlchemy实例
 
 checkin_bp = Blueprint('checkin', __name__, url_prefix='/api/checkin')
@@ -29,11 +29,18 @@ def get_checkin_status():
         WalletUser.wallet_address == wallet_address
     ).first()
 
+    mining_record = MiningHistory.query.join(WalletUser).filter(
+        WalletUser.wallet_address == wallet_address
+    ).order_by(MiningHistory.id.desc()).first()
+
+    is_mining = mining_record.is_mining if mining_record else False
+
     return jsonify({
         'isSignedToday': is_signed_today,
         'consecutiveDays': points_account.consecutive_days if points_account else 0,
         'points': points_account.total_points if points_account else 0,
-        'milestone': points_account.milestone_reached if points_account else 0
+        'milestone': points_account.milestone_reached if points_account else 0,
+        'is_mining': is_mining
     })
 
 @checkin_bp.route('/weekly', methods=['GET'])
@@ -131,6 +138,16 @@ def checkin():
                 points_earned=points_earned,
                 reward_type=reward_type
             ))
+
+            # 新增记录 PointsHistory
+            points_history_record = PointsHistory(
+                wallet_user_id=wallet_user.id,
+                change_type='checkin',  # 或你想用的类型
+                change_amount=points_earned,
+                description=f'checkin：{reward_type}',  # 可改为具体描述
+                created_at=datetime.utcnow()
+            )
+            db.session.add(points_history_record)
         db.session.commit()
 
         return jsonify({

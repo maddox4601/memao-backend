@@ -74,6 +74,7 @@ class Message(db.Model):
     status = db.Column(db.String(20), default='normal')  # normal | ignored
 
 
+
 # 空投模型
 
 
@@ -122,3 +123,28 @@ class User(db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+
+#ming
+class MiningHistory(db.Model):
+    __tablename__ = 'mining_history'
+
+    id = db.Column(db.Integer, primary_key=True)
+    wallet_user_id = db.Column(db.Integer, db.ForeignKey('wallet_users.id'), nullable=False)
+    mined_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    points_earned = db.Column(db.Integer, default=1)
+
+    wallet_user = db.relationship('WalletUser', backref='mining_history')
+
+#viewhistory
+class PointsHistory(db.Model):
+    __tablename__ = 'points_history'
+
+    id = db.Column(db.Integer, primary_key=True)
+    wallet_user_id = db.Column(db.Integer, db.ForeignKey('wallet_users.id'), nullable=False)
+    change_type = db.Column(db.String(60), nullable=False)  # e.g., check-in, mining, airdrop, withdrawal
+    change_amount = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    description = db.Column(db.String(255), nullable=True)
+
+    wallet_user = db.relationship('WalletUser', backref='points_history')

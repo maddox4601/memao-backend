@@ -33,3 +33,12 @@ WITHDRAW_CONTRACT_ADDRESS=0x693e17Ca40E2F36ACBbA40064daeB0b7494B494c
 # Redis 缓存 (可选)
 # ======================
 REDIS_URL=redis://redis:6379/0
+
+
+# ======================
+# Twitter认证
+# ======================
+
+TWITTER_CONSUMER_KEY = lHRa4wc8cRNj37rnMiGF5Lgq3
+TWITTER_CONSUMER_SECRET = jEI2zIVWJlszFHkWyJYKGD4jx92t5kBCI1XJioiLbjNWgsRxXb
+TWITTER_CALLBACK_URL = https://www.memao.org/socialauth/twitter/callback

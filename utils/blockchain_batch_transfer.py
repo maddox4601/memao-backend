@@ -24,8 +24,9 @@ ABIS_DIR = os.path.join(BASE_DIR, '..', 'abis')       # abis 目录
 with open(os.path.join(ABIS_DIR, 'Withdraw_ABI.json'), 'r') as f:
     BATCH_WITHDRAW_ABI = json.load(f)
 
-with open(os.path.join(ABIS_DIR, 'MEMAO_ABI.json'), 'r') as f:
-    ERC20_ABI = json.load(f)
+with open(os.path.join(ABIS_DIR, 'MEMAO.json'), 'r') as f:
+    full_json = json.load(f)
+    ERC20_ABI = full_json['abi']
 
 
 def blockchain_batch_withdraw(recipients, amounts):

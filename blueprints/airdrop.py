@@ -1,5 +1,6 @@
+from decimal import Decimal
 from flask import Blueprint, request, jsonify
-from models import AirdropAddress, AirdropConfig
+from models import AirdropAddress, AirdropConfig,UserPointsAccount,PointsHistory, WalletUser
 from extensions import db
 from datetime import datetime, timezone
 from utils.blockchain_batch_airdrop import blockchain_batch_airdrop
@@ -39,35 +40,98 @@ def collect_address():
         return jsonify({'success': False, 'message': f'Submission failed: {str(e)}'}), 500
 
 
-# Admin管理员手动发放接口
+def distribute_points_to_users(addresses, base_reward):
+    from sqlalchemy.exc import SQLAlchemyError
+    import logging
 
+    for addr in addresses:
+        try:
+            user = WalletUser.query.filter_by(wallet_address=addr).first()
+            if not user:
+                logging.warning(f"User not found for address: {addr}")
+                continue
+
+            points_account = (
+                UserPointsAccount.query
+                .filter_by(wallet_user_id=user.id)
+                .with_for_update()
+                .first()
+            )
+            if not points_account:
+                points_account = UserPointsAccount(wallet_user_id=user.id, total_points=Decimal('0'), consecutive_days=0)
+                db.session.add(points_account)
+                db.session.flush()
+
+            points_account.total_points = (points_account.total_points or Decimal('0')) + base_reward
+
+            points_history = PointsHistory(
+                wallet_user_id=user.id,
+                change_type="airdrop_points",
+                change_amount=base_reward,
+                created_at=datetime.now(timezone.utc),
+                description=f"Airdrop points granted: {base_reward}"
+            )
+            db.session.add(points_history)
+
+        except SQLAlchemyError as e:
+            logging.error(f"Failed to distribute points to {addr}: {str(e)}")
+            db.session.rollback()  # 回滚当前事务，继续处理其他用户
+    try:
+        db.session.commit()
+    except SQLAlchemyError as e:
+        logging.error(f"Failed to commit points distribution transaction: {str(e)}")
+        db.session.rollback()
+
+
+# Admin管理员手动发放接口
 @airdrop_bp.route('/distribute', methods=['POST'])
-@jwt_required
 def manual_distribute():
     try:
         config = AirdropConfig.query.first()
-        batch_size = config.batch_size if config else 20
-        airdrop_amount = int(config.airdrop_amount) if config and config.airdrop_amount else 0
+        if not config:
+            return jsonify({'success': False, 'message': 'Airdrop configuration not found.'}), 400
 
+        batch_size = config.batch_size if config.batch_size else 20
+        airdrop_amount = int(config.airdrop_amount) if config.airdrop_amount else 0
+        distribution_type = config.distribution_type or "points"
+
+        # 查询待发放地址
         pending_addresses = AirdropAddress.query.filter_by(is_distributed=False).limit(batch_size).all()
-
         if not pending_addresses:
             return jsonify({'success': False, 'message': 'No addresses to distribute.'}), 200
 
-        addresses = [user.address for user in pending_addresses]
-        amounts = [airdrop_amount for _ in pending_addresses]  # 所有地址都用统一数量
+        if distribution_type == "points":
+            # 积分发放逻辑
+            addresses = [user.address for user in pending_addresses]
+            # 这里假设airdrop_amount是字符串类型wei，转换成Decimal积分
+            base_reward = Decimal(airdrop_amount) / Decimal(1e18)
 
-        # 调用链上空投合约
-        success = blockchain_batch_airdrop(addresses, amounts)
-
-        if success:
+            distribute_points_to_users(addresses, base_reward)
             for user in pending_addresses:
+                # 这里可以调用积分发放相关函数，比如发积分给 user.address
                 user.is_distributed = True
                 user.distributed_at = datetime.now(timezone.utc)
             db.session.commit()
-            return jsonify({'success': True, 'message': f'{len(pending_addresses)} addresses processed successfully.'}), 200
+            return jsonify({'success': True, 'message': f'{len(pending_addresses)} addresses distributed points successfully.'}), 200
+
+        elif distribution_type == "contract":
+            # 合约发放逻辑
+            addresses = [user.address for user in pending_addresses]
+            amounts = [airdrop_amount for _ in pending_addresses]  # 统一数量
+
+            # 调用链上空投合约函数，示例调用
+            success = blockchain_batch_airdrop(addresses, amounts)
+            if success:
+                for user in pending_addresses:
+                    user.is_distributed = True
+                    user.distributed_at = datetime.now(timezone.utc)
+                db.session.commit()
+                return jsonify({'success': True, 'message': f'{len(pending_addresses)} addresses distributed tokens successfully.'}), 200
+            else:
+                return jsonify({'success': False, 'message': 'Blockchain transaction failed.'}), 500
+
         else:
-            return jsonify({'success': False, 'message': 'Blockchain transaction failed.'}), 500
+            return jsonify({'success': False, 'message': f'Unknown distribution type: {distribution_type}'}), 400
 
     except Exception as e:
         return jsonify({'success': False, 'message': f'Distribution failed: {str(e)}'}), 500
@@ -99,7 +163,8 @@ def update_config():
         data = request.get_json() or {}
         is_enabled = data.get('is_task_enabled')
         batch_size = data.get('batch_size')
-        airdrop_amount = data.get('airdrop_amount')  # 新增字段
+        airdrop_amount = data.get('airdrop_amount')  # 字符串形式
+        distribution_type = data.get('distribution_type')  # 新增字段
 
         config = AirdropConfig.query.first()
         if not config:
@@ -107,11 +172,12 @@ def update_config():
 
         if is_enabled is not None:
             config.is_task_enabled = bool(is_enabled)
-        if batch_size:
+        if batch_size is not None:
             config.batch_size = int(batch_size)
         if airdrop_amount is not None:
-            # 字符串转 int 存数据库
-            config.airdrop_amount = int(airdrop_amount)
+            config.airdrop_amount = int(airdrop_amount)  # 转为 int 存储
+        if distribution_type in ['points', 'contract']:
+            config.distribution_type = distribution_type
 
         db.session.add(config)
         db.session.commit()
@@ -122,14 +188,15 @@ def update_config():
             'data': {
                 'is_task_enabled': config.is_task_enabled,
                 'batch_size': config.batch_size,
-                'airdrop_amount': str(config.airdrop_amount or 0)  # 返回给前端
+                'airdrop_amount': str(config.airdrop_amount or 0),
+                'distribution_type': config.distribution_type
             }
         }), 200
 
     except Exception as e:
         return jsonify({'success': False, 'message': f'Configuration update failed: {str(e)}'}), 500
 
-# Admin 查询当前配置接口
+
 @airdrop_bp.route('/config', methods=['GET'])
 def get_config():
     try:
@@ -138,17 +205,18 @@ def get_config():
             return jsonify({'success': True, 'data': {
                 'is_task_enabled': True,
                 'batch_size': 20,
-                'airdrop_amount': '0'  # 默认返回字符串，防止前端 BigInt 出错
+                'airdrop_amount': '0',
+                'distribution_type': 'points'
             }}), 200
 
         return jsonify({'success': True, 'data': {
             'is_task_enabled': config.is_task_enabled,
             'batch_size': config.batch_size,
-            'airdrop_amount': str(config.airdrop_amount or 0)  # 一定要转字符串，兼容大数
+            'airdrop_amount': str(config.airdrop_amount or 0),
+            'distribution_type': config.distribution_type
         }}), 200
     except Exception as e:
         return jsonify({'success': False, 'message': f'Failed to retrieve configuration: {str(e)}'}), 500
-
 
 #查询空投领取状态
 @airdrop_bp.route('/status', methods=['GET'])

@@ -3,7 +3,6 @@ from models import User
 from extensions import db
 import jwt
 import datetime
-import io
 from captcha.image import ImageCaptcha
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')

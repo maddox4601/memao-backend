@@ -45,6 +45,7 @@ MarkupSafe==2.1.5
 maxminddb==2.6.3
 msgspec==0.18.6
 multidict==6.1.0
+oauthlib==3.3.1
 parsimonious==0.10.0
 pillow==10.4.0
 propcache==0.2.0
@@ -58,6 +59,7 @@ python-dotenv==1.0.1
 pyunormalize==16.0.0
 regex==2024.11.6
 requests==2.32.4
+requests-oauthlib==2.0.0
 rlp==4.1.0
 SQLAlchemy==2.0.41
 toolz==1.0.0

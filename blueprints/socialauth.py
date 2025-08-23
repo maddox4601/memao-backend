@@ -3,7 +3,7 @@ from extensions import db
 from models import SocialAccount
 from utils.twitter_client import twitter_client
 
-socialauth_bp = Blueprint('auth', __name__, url_prefix='/auth')
+socialauth_bp = Blueprint('socialauth', __name__, url_prefix='/socialauth')
 
 
 

@@ -83,16 +83,22 @@ jobs:
           set -eo pipefail
           export PYTHONPATH=/app
 
+          # Hard-coded DB config to avoid env issues
+          DB_HOST=mysql
+          DB_PORT=3306
+          DB_USER=memao_prod_user
+          DB_PASSWORD='Maddox1988@'
+
           # Wait for DB connectivity
-          for i in \$(seq 1 30); do
+          for i in \$(seq 1 60); do
             if mysql -h\$DB_HOST -P\$DB_PORT -u\$DB_USER -p\$DB_PASSWORD -e 'SELECT 1;' &>/dev/null; then
               break
             fi
-            [ \$i -eq 30 ] && {
+            [ \$i -eq 60 ] && {
               echo '::error::Failed to connect to database'
               exit 1
             }
-            sleep 1
+            sleep 2
           done
 
           echo '=== Current DB Revision ==='
@@ -126,8 +132,5 @@ jobs:
       run: |
         if [ "${{ job.status }}" == "success" ]; then
           echo "✅ Production deployment completed"
-          # Add success notification
         else
           echo "❌ Deployment failed!"
-          # Add failure alert
-        fi

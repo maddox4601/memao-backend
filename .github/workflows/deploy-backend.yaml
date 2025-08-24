@@ -79,7 +79,7 @@ jobs:
 
         # 4. Database migration with health check
         echo "🛠️ Executing database migration..."
-        docker compose exec -T backend bash -c "
+        docker compose --env-file /root/memao-backend/.env.pro exec -T backend bash -c "
           set -eo pipefail
           export PYTHONPATH=/app
         

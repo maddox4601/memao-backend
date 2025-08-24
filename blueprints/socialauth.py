@@ -48,12 +48,12 @@ def twitter_callback():
     handle = user_info["screen_name"]
 
     # 返回给前端，用于生成钱包签名
-    return jsonify({
-        "twitter_id": twitter_id,
-        "handle": handle
-    })
-    # frontend_url = f"https://www.memao.org/twittercallbackpage?handle={handle}&twitter_id={twitter_id}"
-    # return redirect(frontend_url)
+    # return jsonify({
+    #     "twitter_id": twitter_id,
+    #     "handle": handle
+    # })
+    frontend_url = f"https://www.memao.org/twittercallbackpage?handle={handle}&twitter_id={twitter_id}"
+    return redirect(frontend_url)
 
 
 # -----------------------------

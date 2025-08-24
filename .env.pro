@@ -41,4 +41,4 @@ REDIS_URL=redis://redis:6379/0
 
 TWITTER_CONSUMER_KEY = lHRa4wc8cRNj37rnMiGF5Lgq3
 TWITTER_CONSUMER_SECRET = jEI2zIVWJlszFHkWyJYKGD4jx92t5kBCI1XJioiLbjNWgsRxXb
-TWITTER_CALLBACK_URL = https://www.memao.org/socialauth/twitter/callback
+TWITTER_CALLBACK_URL = https://www.memao.org/api/socialauth/twitter/callback

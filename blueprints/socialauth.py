@@ -6,7 +6,7 @@ from utils.twitter_client import twitter_client
 from eth_account.messages import encode_defunct
 from web3 import Web3
 
-socialauth_bp = Blueprint('socialauth', __name__, url_prefix='/socialauth')
+socialauth_bp = Blueprint('socialauth', __name__, url_prefix='/api/socialauth')
 
 # -----------------------------
 # Step 1: Twitter 授权

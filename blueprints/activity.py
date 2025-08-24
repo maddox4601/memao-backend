@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 from extensions import db
 from models import WalletUser, UserPointsAccount, PointsHistory
 
-activity_bp = Blueprint('activity', __name__, url_prefix='/activity')
+activity_bp = Blueprint('activity', __name__, url_prefix='/api/activity')
 
 
 @activity_bp.route('/total', methods=['GET'])

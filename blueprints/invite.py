@@ -4,9 +4,9 @@ from extensions import db
 from datetime import datetime, timezone
 from decimal import Decimal
 
-invite_bp = Blueprint('invite', __name__)
+invite_bp = Blueprint('invite', __name__,url_prefix='/api/referrals')
 
-@invite_bp.route('/api/referrals/bind', methods=['POST'])
+@invite_bp.route('/bind', methods=['POST'])
 def bind_referral():
     data = request.get_json()
     referrer = data.get('referrer_address', '').lower()
@@ -63,7 +63,7 @@ def bind_referral():
     return jsonify({"message": "Referral bound successfully"})
 
 
-@invite_bp.route('/api/referrals/stats', methods=['GET'])
+@invite_bp.route('/stats', methods=['GET'])
 def get_referral_stats():
     address = request.args.get('address', '').lower()
     if not address:

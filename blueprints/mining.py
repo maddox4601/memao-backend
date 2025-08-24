@@ -6,10 +6,10 @@ from models import WalletUser, MiningHistory,UserPointsAccount,PointsHistory
 from utils.mining_service import calculate_user_weight, calculate_reward
 from sqlalchemy.exc import SQLAlchemyError
 
-mining_bp = Blueprint('mining', __name__)
+mining_bp = Blueprint('mining', __name__,url_prefix='/api/mining')
 
 getcontext().prec = 30  # 设置高精度环境
-@mining_bp.route('/api/mining/start', methods=['POST'])
+@mining_bp.route('/start', methods=['POST'])
 def mining_start():
     wallet_address = request.json.get('wallet_address')
     if not wallet_address:
@@ -45,7 +45,7 @@ def mining_start():
     return jsonify({"message": "Mining started", "weight": weight})
 
 
-@mining_bp.route('/api/mining/stop', methods=['POST'])
+@mining_bp.route('/stop', methods=['POST'])
 def mining_stop():
     wallet_address = request.json.get('wallet_address')
     if not wallet_address:
@@ -119,7 +119,7 @@ def mining_stop():
 
 
 
-@mining_bp.route('/api/mining/status', methods=['GET'])
+@mining_bp.route('/status', methods=['GET'])
 def mining_status():
     wallet_address = request.args.get('wallet_address')
     user = WalletUser.query.filter_by(wallet_address=wallet_address).first()

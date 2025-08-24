@@ -68,7 +68,7 @@ def create_app():
         app.register_blueprint(bp)
 
     # 健康检查
-    @app.route('/')
+    @app.route('/health')
     def health_check():
         return jsonify({'status': 'healthy'})
 

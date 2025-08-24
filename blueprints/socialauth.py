@@ -75,44 +75,90 @@ def bind_wallet():
     前端发送 wallet_address + twitter_id + signature
     后端验证签名并存储绑定关系
     """
-    data = request.json
-    wallet_address = data.get("wallet_address")
-    twitter_id = data.get("twitter_id")
-    signature = data.get("signature")
-    handle = data.get("handle", "")  # 可选，前端可以传 handle
+    try:
+        data = request.json
+        wallet_address = data.get("wallet_address")
+        twitter_id = data.get("twitter_id")
+        signature = data.get("signature")
+        handle = data.get("handle", "")  # 可选，前端可以传 handle
 
-    if not wallet_address or not twitter_id or not signature:
-        return jsonify({"error": "Missing parameters"}), 400
+        # 验证必需参数
+        if not wallet_address or not twitter_id or not signature:
+            return jsonify({
+                "status": "error",
+                "data": None,
+                "message": "Missing required parameters: wallet_address, twitter_id, and signature are required"
+            }), 400
 
-    # 验证签名
-    if not verify_signature(wallet_address, twitter_id, signature):
-        return jsonify({"error": "Signature mismatch"}), 400
+        # 验证签名
+        if not verify_signature(wallet_address, twitter_id, signature):
+            return jsonify({
+                "status": "error",
+                "data": None,
+                "message": "Signature verification failed"
+            }), 401
 
-    # 查是否已有绑定
-    account = SocialAccount.query.filter_by(provider="twitter", social_id=twitter_id).first()
+        # 查是否已有绑定
+        account = SocialAccount.query.filter_by(provider="twitter", social_id=twitter_id).first()
 
-    if account and account.wallet_address.lower() != wallet_address.lower():
-        return jsonify({"error": "This Twitter account is already linked to another wallet"}), 400
+        # 检查是否已绑定到其他钱包
+        if account and account.wallet_address.lower() != wallet_address.lower():
+            return jsonify({
+                "status": "error",
+                "data": {
+                    "existing_wallet": account.wallet_address,
+                    "twitter_id": twitter_id
+                },
+                "message": "This Twitter account is already linked to another wallet"
+            }), 409  # 409 Conflict
 
-    if not account:
-        # 新建绑定
-        account = SocialAccount(
-            wallet_address=wallet_address,
-            provider="twitter",
-            social_id=twitter_id,
-            handle=handle,
-            verified=True
-        )
-        db.session.add(account)
-    else:
-        # 更新绑定信息
-        account.wallet_address = wallet_address
-        account.handle = handle or account.handle
-        account.verified = True
+        # 处理绑定逻辑
+        if not account:
+            # 新建绑定
+            account = SocialAccount(
+                wallet_address=wallet_address,
+                provider="twitter",
+                social_id=twitter_id,
+                handle=handle,
+                verified=True
+            )
+            db.session.add(account)
+            action = "created"
+        else:
+            # 更新绑定信息
+            account.wallet_address = wallet_address
+            account.handle = handle or account.handle
+            account.verified = True
+            action = "updated"
 
-    db.session.commit()
+        db.session.commit()
 
-    return jsonify({"message": "Wallet successfully linked to Twitter", "handle": account.handle})
+        # 成功响应
+        return jsonify({
+            "status": "success",
+            "data": {
+                "handle": account.handle,
+                "twitter_id": account.social_id,
+                "wallet_address": account.wallet_address,
+                "provider": account.provider,
+                "verified": account.verified,
+                "action": action
+            },
+            "message": "Wallet successfully linked to Twitter"
+        })
+
+    except Exception as e:
+        # 数据库操作异常回滚
+        db.session.rollback()
+
+        # 记录错误日志
+        print(f"Error in bind_wallet: {str(e)}")
+
+        return jsonify({
+            "status": "error",
+            "data": None,
+            "message": "Internal server error occurred while processing your request"
+        }), 500
 
 
 # -----------------------------

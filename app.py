@@ -36,7 +36,7 @@ def create_app():
         SESSION_TYPE=os.getenv('SESSION_TYPE', 'filesystem'),
         SESSION_PERMANENT=os.getenv('SESSION_PERMANENT', 'False') == 'True',
         SESSION_COOKIE_SAMESITE=None,  # 支持跨站点
-        SESSION_COOKIE_SECURE=False,  # 本地 HTTP，生产环境改 True
+        SESSION_COOKIE_SECURE=True,  # 本地 HTTP，生产环境改 True
         SESSION_COOKIE_HTTPONLY=True,  # 防 JS 访问，提高安全性
         SQLALCHEMY_DATABASE_URI=os.getenv('DB_URI'),
         SQLALCHEMY_TRACK_MODIFICATIONS=False

@@ -18,17 +18,27 @@ depends_on = None
 
 def upgrade():
     with op.batch_alter_table('social_accounts', schema=None) as batch_op:
-        # 先删除旧外键约束
-        batch_op.drop_constraint('social_accounts_ibfk_1', type_='foreignkey')
+        # 安全删除外键（如果存在）
+        try:
+            batch_op.drop_constraint('social_accounts_ibfk_1', type_='foreignkey')
+        except Exception:
+            pass
 
-        # 删除旧的唯一索引
-        batch_op.drop_constraint('uix_wallet_provider', type_='unique')
+        # 安全删除唯一索引（如果存在）
+        try:
+            batch_op.drop_constraint('uix_wallet_provider', type_='unique')
+        except Exception:
+            pass
 
         # 创建新的唯一约束
         batch_op.create_unique_constraint('uix_wallet_provider', ['wallet_address', 'provider'])
 
-        # 删除旧的 wallet_user_id 列
-        batch_op.drop_column('wallet_user_id')
+        # 删除旧的列
+        try:
+            batch_op.drop_column('wallet_user_id')
+        except Exception:
+            pass
+
 
 
 

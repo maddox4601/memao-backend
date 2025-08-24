@@ -52,7 +52,7 @@ def twitter_callback():
     #     "twitter_id": twitter_id,
     #     "handle": handle
     # })
-    frontend_url = f"https://www.memao.org/twitter/callback?handle={handle}&twitter_id={twitter_id}"
+    frontend_url = f"https://www.memao.org/twittercallback?handle={handle}&twitter_id={twitter_id}"
     return redirect(frontend_url)
 
 

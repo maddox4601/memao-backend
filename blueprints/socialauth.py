@@ -47,12 +47,30 @@ def twitter_callback():
     twitter_id = user_info["id_str"]
     handle = user_info["screen_name"]
 
+    # 返回 HTML 脚本，通知父窗口并关闭自己
+    html = f"""
+        <html>
+          <body>
+            <script>
+              window.opener.postMessage({{
+                status: "ok",
+                handle: "{handle}",
+                twitter_id: "{twitter_id}"
+              }}, "*");
+              window.close();
+            </script>
+            <p>Twitter authorization successful! You can close this window.</p>
+          </body>
+        </html>
+        """
+    return html
+
     # 返回给前端，用于生成钱包签名
-    return jsonify({
-        "status": "ok",
-        "twitter_id": twitter_id,
-        "handle": handle
-    })
+    # return jsonify({
+    #     "status": "ok",
+    #     "twitter_id": twitter_id,
+    #     "handle": handle
+    # })
 
     #中间页模式
     # frontend_url = f"https://www.memao.org/twitterbind/?handle={handle}&twitter_id={twitter_id}"

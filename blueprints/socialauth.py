@@ -55,7 +55,7 @@ def twitter_callback():
     # })
 
     #中间页模式
-    frontend_url = f"https://www.memao.org/twitterbind?handle={handle}&twitter_id={twitter_id}"
+    frontend_url = f"https://www.memao.org/twitterbind/?handle={handle}&twitter_id={twitter_id}"
     return redirect(frontend_url)
 
 

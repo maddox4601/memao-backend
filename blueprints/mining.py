@@ -31,13 +31,21 @@ def mining_start():
                 hasattr(user, 'daily_weight') and user.daily_weight is not None) else calculate_user_weight(user)
     print(f"[DEBUG] weight: {weight}")
 
-    if weight is None:
+    # 提取实际的权重值
+    if isinstance(weight, tuple) and len(weight) > 0:
+        weight_value = weight[0]  # 取元组的第一个元素（权重值）
+    else:
+        weight_value = weight
+
+    print(f"[DEBUG] weight: {weight_value}")
+
+    if weight_value is None:
         weight = 0
 
     mining = MiningHistory(
         wallet_user_id=user.id,
         mined_at=datetime.utcnow(),
-        weight_snapshot=weight
+        weight_snapshot=weight_value
     )
     db.session.add(mining)
     db.session.commit()

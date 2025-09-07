@@ -80,6 +80,7 @@ def calculate_reward(start_time, weight, end_time):
     elapsed = min(elapsed, max_duration)
 
     decay_rate = 0.0001
+    # 权重=5,单日最多100*5
     base_reward = 100
 
     reward = base_reward * (1 - math.exp(-decay_rate * elapsed)) * weight

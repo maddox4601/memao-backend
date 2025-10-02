@@ -1,3 +1,4 @@
+
 services:
   backend:
     build: .
@@ -5,15 +6,14 @@ services:
     env_file: .env.pro
     environment:
       - DB_URI=${DB_URI}
-      - GUNICORN_CMD_ARGS=--workers=2 --bind=:5000 --timeout=120 --worker-class=gevent --access-logfile=- --error-logfile=-
+      - GUNICORN_CMD_ARGS=--workers=3 --bind=:5000 --timeout=120 --worker-class=gevent --access-logfile=- --error-logfile=-
     expose:
       - "5000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
+      timeout: 5s
+      retries: 3
     depends_on:
       mysql:
         condition: service_healthy
@@ -22,29 +22,8 @@ services:
     networks:
       - backend
     restart: unless-stopped
-    mem_limit: 512m
-    mem_reservation: 256m
-    cpus: 0.5
-
-  worker:
-    build: .
-    command: rq worker tx_jobs --url redis://:maddox1988@redis:6379/0
-    env_file: .env.pro
-    environment:
-      - REDIS_URL=redis://:maddox1988@redis:6379/0
-      - WEB3_PROVIDER=${WEB3_PROVIDER}
-      - FACTORY_ADDRESS=${FACTORY_ADDRESS}
-      - DEV_WALLET_ADDRESS=${DEV_WALLET_ADDRESS}
-      - DEV_PRIVATE_KEY=${DEV_PRIVATE_KEY}
-    depends_on:
-      - redis
-      - backend
-    networks:
-      - backend
-    restart: unless-stopped
-    mem_limit: 256m
-    mem_reservation: 128m
-    cpus: 0.3
+    mem_limit: 700m
+    cpus: 0.8  # 如果你不打算切换到 version 3，则保留
 
   mysql:
     image: mysql:8.0
@@ -58,41 +37,37 @@ services:
       - MYSQL_DATABASE=${DB_NAME}
     command:
       --innodb_buffer_pool_size=256M
-      --innodb_log_file_size=48M
-      --max_connections=30
-      --performance_schema=OFF
+      --innodb_log_file_size=64M
+      --max_connections=100
     volumes:
       - mysql_data:/var/lib/mysql
       - ./mysql/conf:/etc/mysql/conf.d
       - ./mysql/init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 15s
-      timeout: 10s
-      retries: 10
-      start_period: 30s
-    networks:
-      - backend
-    restart: unless-stopped
-    mem_limit: 768m
-    mem_reservation: 512m
-    cpus: 0.6
-
-  redis:
-    image: redis:6-alpine
-    command: redis-server --requirepass maddox1988 --maxmemory 128mb --maxmemory-policy allkeys-lru --save "" --appendonly no
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "-a", "maddox1988", "ping"]
-      interval: 10s
       timeout: 5s
       retries: 5
     networks:
       - backend
     restart: unless-stopped
-    mem_limit: 128m
-    mem_reservation: 64m
+    mem_limit: 500m
+    cpus: 0.6
+
+  redis:
+    image: redis:6-alpine
+    command: redis-server --maxmemory 200mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - backend
+    restart: unless-stopped
+    mem_limit: 250m
     cpus: 0.2
 
   nginx:
@@ -108,10 +83,7 @@ services:
       - backend
     networks:
       - backend
-      - frontend
-    mem_limit: 64m
-    mem_reservation: 32m
-    cpus: 0.1
+      - frontend  # <-- 这里拼写必须对
 
 volumes:
   mysql_data:

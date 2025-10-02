@@ -32,7 +32,7 @@ def bind_referral():
     new_record = InviteRecord(inviter_address=referrer, invitee_address=invited)
     db.session.add(new_record)
 
-    base_reward = Decimal('10')  # 每次邀请奖励积分
+    base_reward = Decimal('50')  # 每次邀请奖励积分50
 
     # --- 加锁查询用户积分账户 ---
     points_account = (
@@ -72,8 +72,8 @@ def get_referral_stats():
     # 1. 获取邀请总人数
     invite_count = InviteRecord.query.filter_by(inviter_address=address).count()
 
-    # 2. 计算累计奖励 (假设每个邀请奖励100积分)
-    base_reward = 10
+    # 2. 计算累计奖励 (假设每个邀请奖励50积分)
+    base_reward = 50
     total_rewards = invite_count * base_reward
 
     # 3. 计算邀请等级 (自定义规则)

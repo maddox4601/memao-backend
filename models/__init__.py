@@ -8,6 +8,8 @@ from .message_models import Message
 from .vip_subscriptions import VIPSubscription
 from .invite_models import InviteRecord
 from .socialaccount_models import SocialAccount
+from .paypal import PayPalOrder,PaymentStatusEnum,DeployStatusEnum
+from .transaction_jobs import TransactionJob,JobStatusEnum
 
 # 2. 定义__all__（控制from models import *的行为）
 __all__ = [
@@ -24,7 +26,12 @@ __all__ = [
     'Message',
     'VIPSubscription',
     'InviteRecord',
-    'SocialAccount'
+    'SocialAccount',
+    'PayPalOrder',
+    'PaymentStatusEnum',
+    'DeployStatusEnum',
+    'TransactionJob',
+    'JobStatusEnum'
 ]
 
 # 3. 显式注册函数（确保Flask-Migrate能发现模型）
@@ -38,3 +45,5 @@ def register_models():
     from . import vip_subscriptions
     from . import invite_models
     from . import socialaccount_models
+    from . import paypal
+    from . import transaction_jobs

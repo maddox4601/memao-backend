@@ -4,6 +4,7 @@ from flask_session import Session
 from flask_migrate import Migrate
 from extensions import db
 from dotenv import load_dotenv
+from extensions import socketio
 import os
 
 # 提前导入模型注册函数（明确显示依赖关系）
@@ -19,6 +20,7 @@ from blueprints.activity import activity_bp
 from blueprints.mining import mining_bp
 from blueprints.invite import invite_bp
 from blueprints.socialauth import socialauth_bp
+from blueprints.paypal import paypal_bp
 from geoip_utils.geoip_bp import geoip_bp
 
 load_dotenv()
@@ -62,7 +64,8 @@ def create_app():
         activity_bp,
         mining_bp,
         invite_bp,
-        socialauth_bp
+        socialauth_bp,
+        paypal_bp
     ]
     for bp in blueprints:
         app.register_blueprint(bp)
@@ -78,4 +81,5 @@ if __name__ == '__main__':
     from scheduler import start_scheduler  # 延迟导入
     app = create_app()
     start_scheduler(app)
-    app.run(host='0.0.0.0', port=5000)
+    socketio.init_app(app, cors_allowed_origins="*", async_mode="eventlet")
+    socketio.run(app, host='0.0.0.0', port=5000)

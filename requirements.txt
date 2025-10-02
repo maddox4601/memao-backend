@@ -19,7 +19,7 @@ ckzg==2.1.1
 click==8.1.8
 cryptography==45.0.4
 cytoolz==1.0.1
-dnspython==2.6.1
+dnspython==1.16.0
 eth-account==0.13.7
 eth-hash==0.7.1
 eth-keyfile==0.8.1

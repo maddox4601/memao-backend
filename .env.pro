@@ -47,7 +47,8 @@ TWITTER_CALLBACK_URL = https://www.memao.org/api/socialauth/twitter/callback
 # PayPal
 # ======================
 # 沙箱环境，正式环境改为 api-m.paypal.com
-PAYPAL_API=https://api-m.paypal.com
+#PAYPAL_API=https://api-m.paypal.com
+PAYPAL_API=https://api-m.sandbox.paypal.com
 PAYPAL_CLIENT_ID=AaE9wijDuyTmhVdwFnQQ830HUAMDfcyxqPZXsQezNW-lafAPo6C916Ue9lm_IjjV8b8AeKhV6_JrhsYp
 PAYPAL_SECRET=EEPeuden31mF_yjVus8HU679D1z0raHf78cP2MpNogtJWtxQUvOzbbj9I84ckXWrdcI5nYfOFU-I3vQV
 

@@ -81,5 +81,6 @@ if __name__ == '__main__':
     from scheduler import start_scheduler  # 延迟导入
     app = create_app()
     start_scheduler(app)
-    socketio.init_app(app, cors_allowed_origins="*", async_mode="eventlet")
-    socketio.run(app, host='0.0.0.0', port=5000)
+    #本地debug socket放开
+    # socketio.init_app(app, cors_allowed_origins="*", async_mode="eventlet")
+    # socketio.run(app, host='0.0.0.0', port=5000)

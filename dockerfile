@@ -1,5 +1,5 @@
 # 阶段1：构建依赖
-FROM python:3.9-slim as builder
+FROM python:3.10-slim as builder
 WORKDIR /memao-backend
 
 # 安装系统构建依赖（用于编译 MySQLclient 等）
@@ -14,7 +14,7 @@ RUN pip install --prefix=/install --no-cache-dir -r requirements.txt \
 
 
 # 阶段2：构建最终镜像
-FROM python:3.9-slim
+FROM python:3.10-slim
 WORKDIR /memao-backend
 
 # 安装运行时所需的 libmysqlclient 运行库

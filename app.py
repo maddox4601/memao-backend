@@ -82,5 +82,5 @@ if __name__ == '__main__':
     app = create_app()
     start_scheduler(app)
     #本地debug socket放开
-    # socketio.init_app(app, cors_allowed_origins="*", async_mode="eventlet")
+    # socketio.init_app(app, cors_allowed_origins="*", async_mode="gevent")
     # socketio.run(app, host='0.0.0.0', port=5000)

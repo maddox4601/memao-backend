@@ -28,12 +28,12 @@ eth-rlp==2.2.0
 eth-typing==5.2.1
 eth-utils==5.3.0
 eth_abi==5.2.0
-eventlet==0.33.0
+eventlet==0.30.2
 Flask==3.0.3
 Flask-Cors==5.0.0
 Flask-Migrate==4.1.0
 Flask-Session==0.8.0
-Flask-SocketIO==5.5.1
+Flask-SocketIO==4.3.2
 Flask-SQLAlchemy==3.1.1
 frozenlist==1.5.0
 geoip2==4.8.1
@@ -61,8 +61,8 @@ pydantic_core==2.27.2
 PyJWT==2.9.0
 PyMySQL==1.1.1
 python-dotenv==1.0.1
-python-engineio==4.12.3
-python-socketio==5.14.0
+python-engineio==3.14.2
+python-socketio==4.6.1
 pyunormalize==16.0.0
 redis==6.1.1
 regex==2024.11.6
@@ -71,6 +71,7 @@ requests-oauthlib==2.0.0
 rlp==4.1.0
 rq==2.3.3
 simple-websocket==1.1.0
+six==1.17.0
 SQLAlchemy==2.0.41
 toolz==1.0.0
 types-requests==2.32.0.20241016

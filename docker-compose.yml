@@ -5,7 +5,8 @@ services:
     env_file: .env.pro
     environment:
       - DB_URI=${DB_URI}
-      - GUNICORN_CMD_ARGS=--workers=2 --bind=:5000 --timeout=120 --worker-class=gevent --access-logfile=- --error-logfile=-
+      - GUNICORN_CMD_ARGS=--workers=1 --bind=:5000 --timeout=120 --worker-class=eventlet --access-logfile=- --error-logfile=-
+
     expose:
       - "5000"
     healthcheck:

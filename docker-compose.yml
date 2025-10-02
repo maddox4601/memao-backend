@@ -6,26 +6,14 @@ services:
     env_file: .env.pro
     environment:
       - DB_URI=${DB_URI}
-      - REDIS_URL=redis://:maddox1988@redis:6379/0
-    # 用 entrypoint 脚本控制 migration + gunicorn 启动
-    entrypoint: ["/bin/sh", "-c", "
-      # 等待 MySQL ready
-      until mysqladmin ping -h $DB_HOST --silent; do
-        echo 'Waiting for MySQL...'
-        sleep 3
-      done
-      echo 'MySQL is ready, running migrations...'
-      flask db upgrade
-      echo 'Starting Gunicorn...'
-      gunicorn --workers=3 --bind=:5000 --timeout=120 --worker-class=gevent --access-logfile=- --error-logfile=- app:app
-    "]
+      - GUNICORN_CMD_ARGS=--workers=3 --bind=:5000 --timeout=120 --worker-class=gevent --access-logfile=- --error-logfile=-
     expose:
       - "5000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
       timeout: 5s
-      retries: 5
+      retries: 3
     depends_on:
       mysql:
         condition: service_healthy
@@ -34,8 +22,8 @@ services:
     networks:
       - backend
     restart: unless-stopped
-    mem_limit: 600m
-    cpus: 0.8
+    mem_limit: 700m
+    cpus: 0.8  # 如果你不打算切换到 version 3，则保留
 
   worker:
     build: .

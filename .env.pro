@@ -21,7 +21,7 @@ SESSION_PERMANENT=False
 # ======================
 # 区块链配置 (保持不变)
 # ======================
-WEB3_PROVIDER=https://sepolia.infura.io/v3/4a1828c6924c46ea86d80ca94c77c9de
+WEB3_PROVIDER=https://mainnet.infura.io/v3/4a1828c6924c46ea86d80ca94c77c9de
 COMMUNITY_PRIVATE_KEY=0x83fb9d9f89b89976653eaa1d07ea89df7fe08a29d185edbdd8042c6a1c1e1180
 DEV_PRIVATE_KEY=0x1f8a627841544f8e55cf16e51c955777d6fade3c833fa442998b5cddb7628d0d
 AIRDROP_CONTRACT_ADDRESS=0x64C2eAdA53c436f13cB1FcDEE48CA07b10Cbd38f
@@ -42,3 +42,22 @@ REDIS_URL=redis://redis:6379/0
 TWITTER_CONSUMER_KEY = lHRa4wc8cRNj37rnMiGF5Lgq3
 TWITTER_CONSUMER_SECRET = jEI2zIVWJlszFHkWyJYKGD4jx92t5kBCI1XJioiLbjNWgsRxXb
 TWITTER_CALLBACK_URL = https://www.memao.org/api/socialauth/twitter/callback
+
+# ======================
+# PayPal
+# ======================
+# 沙箱环境，正式环境改为 api-m.paypal.com
+PAYPAL_API=https://api-m.paypal.com
+PAYPAL_CLIENT_ID=AaE9wijDuyTmhVdwFnQQ830HUAMDfcyxqPZXsQezNW-lafAPo6C916Ue9lm_IjjV8b8AeKhV6_JrhsYp
+PAYPAL_SECRET=EEPeuden31mF_yjVus8HU679D1z0raHf78cP2MpNogtJWtxQUvOzbbj9I84ckXWrdcI5nYfOFU-I3vQV
+
+TOKEN_PRICE=1
+TOKEN_CURRENCY=USD
+
+FACTORY_ADDRESS=0xc66a513963381ea918251E15Fa78E2aD9eB30321
+DEV_WALLET_ADDRESS=0xbDe89394393C7427e4840F468AeB3162282b86f4
+
+#Redis配置
+REDIS_URL=redis://:maddox1988@redis:6379/0
+
+MAIN_SERVER_URL=https://www.memao.org

@@ -7,8 +7,8 @@ Create Date: 2025-10-04
 from alembic import op
 import sqlalchemy as sa
 
-revision = 'fix_wallet_user_uuid'
-down_revision = '729ac03d2557'
+revision = '729ac03d2557'
+down_revision = 'f9b8d5f71a00'
 branch_labels = None
 depends_on = None
 

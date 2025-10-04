@@ -16,13 +16,32 @@ branch_labels = None
 depends_on = None
 
 
+def drop_fk_if_exists(table_name, fk_name):
+    """安全删除外键，如果不存在则跳过"""
+    conn = op.get_bind()
+    result = conn.execute(
+        sa.text("""
+        SELECT CONSTRAINT_NAME 
+        FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = :table 
+          AND CONSTRAINT_NAME = :fk
+        """),
+        {"table": table_name, "fk": fk_name}
+    ).fetchone()
+    if result:
+        with op.batch_alter_table(table_name) as batch_op:
+            batch_op.drop_constraint(fk_name, type_="foreignkey")
+
+
 def upgrade():
+    connection = op.get_bind()
+
     # --- 1. users 表新增临时列 uuid ---
     with op.batch_alter_table("users") as batch_op:
         batch_op.add_column(sa.Column("id_uuid", sa.String(36), nullable=True))
 
     # --- 2. 填充 id_uuid 数据 ---
-    connection = op.get_bind()
     users = connection.execute(sa.text("SELECT id FROM users")).fetchall()
     for row in users:
         old_id = row[0]
@@ -53,11 +72,9 @@ def upgrade():
         SET ua.user_id_uuid = u.id_uuid
     """))
 
-    # --- 7. 删除旧外键 ---
-    with op.batch_alter_table("wallet_users") as batch_op:
-        batch_op.drop_constraint("wallet_users_ibfk_1", type_="foreignkey")
-    with op.batch_alter_table("user_accounts") as batch_op:
-        batch_op.drop_constraint("user_accounts_ibfk_1", type_="foreignkey")
+    # --- 7. 删除旧外键，如果存在 ---
+    drop_fk_if_exists("wallet_users", "wallet_users_ibfk_1")
+    drop_fk_if_exists("user_accounts", "user_accounts_ibfk_1")
 
     # --- 8. 删除旧列，改名新列 ---
     with op.batch_alter_table("users") as batch_op:
@@ -88,5 +105,4 @@ def upgrade():
 
 
 def downgrade():
-    # 线上不建议 downgrade，因为 UUID 数据可能破坏原 INT
     raise NotImplementedError("Downgrade is not supported for UUID migration.")

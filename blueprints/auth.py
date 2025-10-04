@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, session, send_file,current_app
-from models import User
+from models import AdminUser
 from extensions import db
 import jwt
 import datetime
@@ -20,11 +20,11 @@ def register():
     if not username or not password:
         return jsonify({'success': False, 'message': '用户名和密码不能为空'}), 400
 
-    if User.query.filter_by(username=username).first():
+    if AdminUser.query.filter_by(username=username).first():
         return jsonify({'success': False, 'message': '用户名已存在'}), 400
 
     try:
-        user = User(username=username)
+        user = AdminUser(username=username)
         user.set_password(password)
         db.session.add(user)
         db.session.commit()
@@ -57,7 +57,7 @@ def login():
     if captcha != session_captcha:
         return jsonify({'success': False, 'message': '验证码错误'}), 400
 
-    user = User.query.filter_by(username=username).first()
+    user = AdminUser.query.filter_by(username=username).first()
     if user and user.check_password(password):
         payload = {
             'user_id': user.id,

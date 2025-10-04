@@ -35,7 +35,7 @@ def serialize_user(user):
 
 
 # --------- 获取用户信息 ----------
-@login_bp.route("/user/<int:user_id>", methods=["GET"])
+@login_bp.route("/user/<string:user_id>", methods=["GET"])
 def get_user(user_id):
     """根据用户ID获取完整的用户信息"""
     user = User.query.get(user_id)

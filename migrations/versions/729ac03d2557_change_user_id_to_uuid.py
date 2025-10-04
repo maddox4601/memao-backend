@@ -16,7 +16,8 @@ depends_on = None
 
 
 def upgrade():
-    # 1. 删除 wallet_users 外键约束
+    # 1. 删除外键约束
+    op.drop_constraint("user_accounts_ibfk_1", "user_accounts", type_="foreignkey")
     op.drop_constraint("wallet_users_ibfk_1", "wallet_users", type_="foreignkey")
 
     # 2. 修改 user_accounts.user_id
@@ -46,7 +47,16 @@ def upgrade():
             existing_nullable=True
         )
 
-    # 5. 重新添加外键约束
+    # 5. 重新添加外键
+    op.create_foreign_key(
+        "user_accounts_ibfk_1",
+        "user_accounts",
+        "users",
+        ["user_id"],
+        ["id"],
+        ondelete="CASCADE"
+    )
+
     op.create_foreign_key(
         "wallet_users_ibfk_1",
         "wallet_users",
@@ -58,7 +68,8 @@ def upgrade():
 
 
 def downgrade():
-    # 回滚：先删掉外键
+    # 先删除外键
+    op.drop_constraint("user_accounts_ibfk_1", "user_accounts", type_="foreignkey")
     op.drop_constraint("wallet_users_ibfk_1", "wallet_users", type_="foreignkey")
 
     # 回滚 wallet_users.user_id
@@ -89,6 +100,15 @@ def downgrade():
         )
 
     # 恢复外键
+    op.create_foreign_key(
+        "user_accounts_ibfk_1",
+        "user_accounts",
+        "users",
+        ["user_id"],
+        ["id"],
+        ondelete="CASCADE"
+    )
+
     op.create_foreign_key(
         "wallet_users_ibfk_1",
         "wallet_users",

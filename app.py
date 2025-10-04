@@ -22,6 +22,7 @@ from blueprints.invite import invite_bp
 from blueprints.socialauth import socialauth_bp
 from blueprints.paypal import paypal_bp
 from geoip_utils.geoip_bp import geoip_bp
+from blueprints.login import login_bp
 
 load_dotenv()
 
@@ -65,7 +66,8 @@ def create_app():
         mining_bp,
         invite_bp,
         socialauth_bp,
-        paypal_bp
+        paypal_bp,
+        login_bp
     ]
     for bp in blueprints:
         app.register_blueprint(bp)

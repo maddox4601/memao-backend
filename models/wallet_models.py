@@ -12,6 +12,10 @@ class WalletUser(db.Model):
     nickname = db.Column(db.String(64), nullable=True)
     registered_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
+    # 新增：关联统一用户
+    user_id = db.Column(db.String(36), ForeignKey('users.id'), nullable=True)
+    user = relationship("User", back_populates="wallets")
+
     daily_weight = db.Column(db.Float, default=1.0)  # 每日权重
     last_weight_update = db.Column(db.DateTime)      # 更新时间
 

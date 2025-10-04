@@ -1,6 +1,8 @@
 # 1. 显式导入所有模型类（供__all__和直接引用使用）
 from extensions import db
-from .user_models import User
+
+from .adminuser_models import AdminUser
+from .user_models import User,UserAccount
 from .wallet_models import WalletUser, CheckinHistory, UserPointsAccount, WithdrawalHistory, PointsHistory
 from .airdrop_models import AirdropAddress, AirdropConfig, TokenTransfer
 from .mining_models import MiningHistory
@@ -13,7 +15,9 @@ from .transaction_jobs import TransactionJob,JobStatusEnum
 
 # 2. 定义__all__（控制from models import *的行为）
 __all__ = [
+    'AdminUser',
     'User',
+    'UserAccount',
     'WalletUser',
     'CheckinHistory',
     'UserPointsAccount',
@@ -37,6 +41,8 @@ __all__ = [
 # 3. 显式注册函数（确保Flask-Migrate能发现模型）
 def register_models():
     """强制导入所有模型模块（触发SQLAlchemy注册）"""
+    from . import adminuser_models
+    from . import user_models
     from . import user_models
     from . import wallet_models
     from . import airdrop_models

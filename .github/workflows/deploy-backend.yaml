@@ -55,6 +55,9 @@ jobs:
         # 1️⃣ 同步代码
         echo "🔁 Syncing code..."
         git fetch --tags origin master
+        # 强制放弃本地修改，避免 .env.pro 阻塞 checkout
+        git reset --hard
+        git clean -fd
         git checkout -B master origin/master
         git reset --hard origin/master
 

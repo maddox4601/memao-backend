@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, session,redirect
 from extensions import db
 from models import SocialAccount
 from utils.twitter_client import twitter_client
+from utils.google_client import google_client
 
 from eth_account.messages import encode_defunct
 from web3 import Web3
@@ -195,6 +196,158 @@ def twitter_status():
         return jsonify({"error": "wallet address not provided"}), 400
 
     account = SocialAccount.query.filter_by(wallet_address=wallet_address, provider="twitter").first()
+
+    if not account or not account.verified:
+        return jsonify({"verified": False})
+
+    return jsonify({
+        "verified": True,
+        "handle": account.handle
+    })
+
+
+# -----------------------------
+# Google 授权相关接口
+# -----------------------------
+@socialauth_bp.route('/google/login', methods=['GET'])
+def google_login():
+    """
+    返回 Google 授权 URL
+    """
+    auth_url = google_client.get_authorize_url()
+    return jsonify({"auth_url": auth_url})
+
+
+@socialauth_bp.route('/google/callback', methods=['GET'])
+def google_callback():
+    """
+    Google 授权回调
+    """
+    code = request.args.get("code")
+    if not code:
+        return jsonify({"error": "Missing code"}), 400
+
+    try:
+        # 1️⃣ 换取 access_token
+        tokens = google_client.exchange_code_for_token(code)
+        access_token = tokens.get("access_token")
+
+        # 2️⃣ 获取用户信息
+        user_info = google_client.get_user_info(access_token)
+        google_id = user_info.get("sub")
+        email = user_info.get("email", "")
+        name = user_info.get("name", "")
+
+        # 3️⃣ 通知前端并关闭窗口
+        html = f"""
+            <html>
+              <body>
+                <script>
+                  window.opener.postMessage({{
+                    status: "ok",
+                    google_id: "{google_id}",
+                    email: "{email}",
+                    name: "{name}"
+                  }}, "*");
+                  window.close();
+                </script>
+                <p>Google authorization successful! You can close this window.</p>
+              </body>
+            </html>
+        """
+        return html
+
+    except Exception as e:
+        print("Google OAuth error:", str(e))
+        return jsonify({"error": str(e)}), 500
+
+# -----------------------------
+# Google 钱包绑定接口-暂未使用
+# -----------------------------
+@socialauth_bp.route('/google/bind_wallet', methods=['POST'])
+def google_bind_wallet():
+    """
+    前端发送 wallet_address + google_id + signature
+    后端验证签名并存储绑定关系
+    """
+    try:
+        data = request.json
+        wallet_address = data.get("wallet_address")
+        google_id = data.get("google_id")
+        signature = data.get("signature")
+        email = data.get("email", "")
+        name = data.get("name", "")
+
+        if not wallet_address or not google_id or not signature:
+            return jsonify({
+                "status": "error",
+                "data": None,
+                "message": "Missing required parameters"
+            }), 400
+
+        # TODO: 这里根据你的签名规则验证 signature
+        # 例如 message = f"Bind wallet {wallet_address} to google {google_id}"
+
+        # 查是否已有绑定
+        account = SocialAccount.query.filter_by(provider="google", social_id=google_id).first()
+
+        if account and account.wallet_address.lower() != wallet_address.lower():
+            return jsonify({
+                "status": "error",
+                "data": {"existing_wallet": account.wallet_address, "google_id": google_id},
+                "message": "This Google account is already linked to another wallet"
+            }), 409
+
+        if not account:
+            account = SocialAccount(
+                wallet_address=wallet_address,
+                provider="google",
+                social_id=google_id,
+                handle=name or email,
+                verified=True
+            )
+            db.session.add(account)
+            action = "created"
+        else:
+            account.wallet_address = wallet_address
+            account.handle = name or email
+            account.verified = True
+            action = "updated"
+
+        db.session.commit()
+
+        return jsonify({
+            "status": "success",
+            "data": {
+                "handle": account.handle,
+                "google_id": account.social_id,
+                "wallet_address": account.wallet_address,
+                "provider": account.provider,
+                "verified": account.verified,
+                "action": action
+            },
+            "message": "Wallet successfully linked to Google"
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error in google_bind_wallet: {e}")
+        return jsonify({"status": "error", "data": None, "message": str(e)}), 500
+
+
+# -----------------------------
+# Google 绑定状态查询
+# -----------------------------
+@socialauth_bp.route('/google/status', methods=['GET'])
+def google_status():
+    """
+    前端传 wallet_address 查询绑定状态
+    """
+    wallet_address = request.args.get("wallet_address")
+    if not wallet_address:
+        return jsonify({"error": "wallet address not provided"}), 400
+
+    account = SocialAccount.query.filter_by(wallet_address=wallet_address, provider="google").first()
 
     if not account or not account.verified:
         return jsonify({"verified": False})

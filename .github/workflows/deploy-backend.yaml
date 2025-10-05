@@ -11,6 +11,8 @@ jobs:
     env:
       FLASK_APP: "app.py"
       DB_WAIT_TIMEOUT: 120  # 数据库等待超时(秒)
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
 
     steps:
     - name: Checkout Repository
@@ -52,6 +54,13 @@ jobs:
         git fetch --tags origin master
         git checkout -B master origin/master
         git reset --hard origin/master
+        
+        # 2. 追加 Google OAuth Secrets 到 .env.pro
+        echo "🔑 Adding Google OAuth secrets..."
+        cat >> /root/memao-backend/.env.pro <<EOG
+        GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+        GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+        EOG
 
         # 2. Service restart
         echo "🐳 Rebuilding containers..."

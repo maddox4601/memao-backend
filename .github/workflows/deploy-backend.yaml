@@ -77,6 +77,7 @@ jobs:
           # 2️⃣ 更新 .env.pro
           echo "🔑 Updating environment file..."
           ENV_FILE="\$DEPLOY_DIR/.env.pro"
+          touch "\$ENV_FILE"
           grep -v "GOOGLE_CLIENT_" "\$ENV_FILE" > "\$ENV_FILE.tmp" || true
           echo "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" >> "\$ENV_FILE.tmp"
           echo "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" >> "\$ENV_FILE.tmp"
@@ -107,7 +108,7 @@ jobs:
           
           # 5️⃣ 数据库迁移
           echo "🛠️ Executing database migration..."
-          docker compose --env-file "$ENV_FILE" exec -T backend bash -c "
+          docker compose --env-file "\$ENV_FILE" exec -T backend bash -c "
           set -eo pipefail
           export PYTHONPATH=/app
           echo \"Checking database connection...\"
@@ -133,8 +134,7 @@ jobs:
             flask db current || true
             exit 1
           fi
-          " | tee "/tmp/migration_${TIMESTAMP}.log"
-
+          " | tee "/tmp/migration_\${TIMESTAMP}.log"
           
           # 6️⃣ 最终健康检查
           echo "✅ Verifying deployment..."
@@ -157,4 +157,14 @@ jobs:
           # 7️⃣ 清理旧容器和镜像
           echo "🧹 Cleaning up..."
           docker system prune -f --filter "until=24h"
-          EOF
+
+EOF
+
+      - name: Notify Status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Production deployment completed"
+          else
+            echo "❌ Deployment failed!"
+          fi

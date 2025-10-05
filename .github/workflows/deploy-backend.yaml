@@ -59,7 +59,7 @@ jobs:
         export TIMESTAMP=$(date +%Y%m%d%H%M%S)
         export LOG_FILE="/tmp/deploy_${TIMESTAMP}.log"
         export DB_WAIT_TIMEOUT=120
-        exec > >(tee -a "$LOG_FILE") 2>&1
+        exec > >(tee -a "\$LOG_FILE") 2>&1
 
         cd "$DEPLOY_DIR" || exit 1
 

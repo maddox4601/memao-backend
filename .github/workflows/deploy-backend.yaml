@@ -39,6 +39,17 @@ jobs:
         GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
         GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
       run: |
+        if [ -z "${{ secrets.GOOGLE_CLIENT_ID }}" ]; then
+        echo "::error::GOOGLE_CLIENT_ID is empty or not accessible"
+        else
+          echo "✅ GOOGLE_CLIENT_ID is set (masked for security)"
+        fi
+        if [ -z "${{ secrets.GOOGLE_CLIENT_SECRET }}" ]; then
+          echo "::error::GOOGLE_CLIENT_SECRET is empty or not accessible"
+        else
+          echo "✅ GOOGLE_CLIENT_SECRET is set (masked for security)"
+        fi
+        
         ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
         set -eo pipefail
         echo "🚀 Starting production deployment..."

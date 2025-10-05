@@ -36,67 +36,65 @@ jobs:
 
     - name: Deploy via SSH
       run: |
-        ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << EOF
         set -eo pipefail
         echo "🚀 Starting production deployment..."
 
         # Environment setup
-        export DEPLOY_DIR="/root/memao-backend"
-        export TIMESTAMP=$(date +%Y%m%d%H%M%S)
-        export LOG_FILE="/tmp/deploy_${TIMESTAMP}.log"
+        DEPLOY_DIR="/root/memao-backend"
+        TIMESTAMP=\$(date +%Y%m%d%H%M%S)
+        LOG_FILE="/tmp/deploy_\${TIMESTAMP}.log"
 
         # Logging setup
-        exec > >(tee -a "$LOG_FILE") 2>&1
+        exec > >(tee -a "\$LOG_FILE") 2>&1
 
         # 1. Code deployment
-        cd "$DEPLOY_DIR" || exit 1
+        cd "\$DEPLOY_DIR" || exit 1
         echo "🔁 Syncing code..."
         git fetch --tags origin master
         git checkout -B master origin/master
         git reset --hard origin/master
-        
-        # 2. 追加 Google OAuth Secrets 到 .env.pro
-        echo "🔑 Adding Google OAuth secrets..."
-        cat >> /root/memao-backend/.env.pro <<EOG
-        GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-        GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-        EOG
 
-        # 2. Service restart
+        # 追加 Google OAuth secrets 到 .env.pro
+        echo "🔑 Adding Google OAuth secrets..."
+        echo "GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}" >> /root/memao-backend/.env.pro
+        echo "GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}" >> /root/memao-backend/.env.pro
+
+        # 3. Service restart
         echo "🐳 Rebuilding containers..."
         docker compose --env-file /root/memao-backend/.env.pro down --timeout 30
         docker compose --env-file /root/memao-backend/.env.pro up -d --build
 
-        # 3. Wait for MySQL FULLY ready using healthcheck
+        # 4. Wait for MySQL FULLY ready using healthcheck
         echo "⏳ Waiting for MySQL to be healthy..."
         DB_READY=false
-        for i in $(seq 1 $DB_WAIT_TIMEOUT); do
-          STATUS=$(docker inspect --format='{{.State.Health.Status}}' memao-backend-mysql-1 || echo "starting")
-          if [ "$STATUS" = "healthy" ]; then
+        for i in \$(seq 1 $DB_WAIT_TIMEOUT); do
+          STATUS=\$(docker inspect --format='{{.State.Health.Status}}' memao-backend-mysql-1 || echo "starting")
+          if [ "\$STATUS" = "healthy" ]; then
             DB_READY=true
             break
           fi
           sleep 2
-          echo "Waiting...($i/$DB_WAIT_TIMEOUT) MySQL status: $STATUS"
+          echo "Waiting...(\$i/$DB_WAIT_TIMEOUT) MySQL status: \$STATUS"
         done
 
-        if ! $DB_READY; then
+        if ! \$DB_READY; then
           echo "::error::MySQL startup timed out"
           docker compose logs mysql
           exit 1
         fi
 
-        # 4. Database migration with health check
+        # 5. Database migration with health check
         echo "🛠️ Executing database migration..."
         docker compose --env-file /root/memao-backend/.env.pro exec -T backend bash -c "
           set -eo pipefail
           export PYTHONPATH=/app
-        
+
           DB_HOST=mysql
           DB_PORT=3306
           DB_USER=memao_prod_user
           DB_PASSWORD='Maddox1988@'
-        
+
           # Wait for DB connectivity via Flask
           for i in \$(seq 1 60); do
             if flask db current &>/dev/null; then
@@ -109,23 +107,22 @@ jobs:
             }
             sleep 2
           done
-        
+
           echo '=== Current DB Revision ==='
           flask db current || true
-        
+
           echo '=== Executing Migration ==='
           if ! flask db upgrade 2>&1; then
             echo '::error::Migration failed, attempting rollback...'
             flask db downgrade -1
             exit 1
           fi
-        
+
           echo '=== Migration Complete ==='
           flask db current
-        " | tee "/tmp/migration_${TIMESTAMP}.log"
+        " | tee "/tmp/migration_\${TIMESTAMP}.log"
 
-
-        # 5. Final verification
+        # 6. Final verification
         echo "✅ Verifying deployment..."
         if ! docker compose exec -T backend curl -sf http://localhost/health; then
           echo "::error::Health check failed"
@@ -134,7 +131,7 @@ jobs:
         fi
 
         echo "🎉 Deployment successful!"
-        echo "Logs: $LOG_FILE"
+        echo "Logs: \$LOG_FILE"
         EOF
 
     - name: Notify Status

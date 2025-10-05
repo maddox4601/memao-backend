@@ -57,11 +57,9 @@ jobs:
         
         # 追加 Google OAuth secrets 到 .env.pro
         echo "🔑 Adding Google OAuth secrets..."
-        ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << EOF
         echo "" >> /root/memao-backend/.env.pro  # 确保换行
         echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> /root/memao-backend/.env.pro
         echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> /root/memao-backend/.env.pro
-        EOF
 
 
 

@@ -50,7 +50,7 @@ jobs:
           echo "✅ GOOGLE_CLIENT_SECRET is set (masked for security)"
         fi
         
-        ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << EOF
         set -eo pipefail
         echo "🚀 Starting production deployment..."
 

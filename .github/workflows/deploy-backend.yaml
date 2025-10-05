@@ -112,7 +112,7 @@ jobs:
           cat > /tmp/migrate.sh << MIGRATE_EOF
           #!/bin/bash
           set -eo pipefail
-          export PYTHONPATH=/app
+          export PYTHONPATH=/memao-backend
           
           echo "Checking database connection..."
           for i in \\$(seq 1 30); do

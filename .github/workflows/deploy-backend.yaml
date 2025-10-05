@@ -34,43 +34,43 @@ jobs:
         ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
 
     - name: Deploy via SSH
+      env:
+        GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+        GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
       run: |
         ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
         set -eo pipefail
         echo "🚀 Starting production deployment..."
 
-        # Environment setup
+        # 环境变量和日志
         export DEPLOY_DIR="/root/memao-backend"
         export TIMESTAMP=$(date +%Y%m%d%H%M%S)
         export LOG_FILE="/tmp/deploy_${TIMESTAMP}.log"
-        export DB_WAIT_TIMEOUT=120  # 移到 SSH 会话内部
-
-        # Logging setup
+        export DB_WAIT_TIMEOUT=120
         exec > >(tee -a "$LOG_FILE") 2>&1
 
-        # 1. Code deployment
         cd "$DEPLOY_DIR" || exit 1
+
+        # 1️⃣ 同步代码
         echo "🔁 Syncing code..."
         git fetch --tags origin master
         git checkout -B master origin/master
         git reset --hard origin/master
-        
-        # 改进：使用临时文件避免重复追加
+
+        # 2️⃣ 更新 .env.pro
         echo "🔑 Updating environment file..."
-        ENV_FILE="/root/memao-backend/.env.pro"
-        # 移除可能已存在的 Google OAuth 配置
+        ENV_FILE="$DEPLOY_DIR/.env.pro"
         grep -v "GOOGLE_CLIENT_" "$ENV_FILE" > "$ENV_FILE.tmp" || true
-        # 添加新的配置
-        echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> "$ENV_FILE.tmp"
-        echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> "$ENV_FILE.tmp"
+        echo "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" >> "$ENV_FILE.tmp"
+        echo "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" >> "$ENV_FILE.tmp"
         mv "$ENV_FILE.tmp" "$ENV_FILE"
 
-        # 2. Service restart
+        # 3️⃣ 重建 Docker 容器
         echo "🐳 Rebuilding containers..."
         docker compose --env-file "$ENV_FILE" down --timeout 30
         docker compose --env-file "$ENV_FILE" up -d --build
 
-        # 3. Wait for MySQL FULLY ready using healthcheck
+        # 4️⃣ 等待 MySQL 健康
         echo "⏳ Waiting for MySQL to be healthy..."
         DB_READY=false
         for i in $(seq 1 $DB_WAIT_TIMEOUT); do
@@ -81,20 +81,17 @@ jobs:
           sleep 2
           echo "Waiting...($i/$DB_WAIT_TIMEOUT)"
         done
-
         if ! $DB_READY; then
           echo "::error::MySQL startup timed out"
           docker compose logs mysql
           exit 1
         fi
 
-        # 4. Database migration with improved error handling
+        # 5️⃣ 数据库迁移
         echo "🛠️ Executing database migration..."
         docker compose --env-file "$ENV_FILE" exec -T backend bash -c "
           set -eo pipefail
           export PYTHONPATH=/app
-        
-          # Wait for DB connectivity via Flask with timeout
           echo 'Checking database connection...'
           for i in \$(seq 1 30); do
             if flask db current &>/dev/null; then
@@ -107,23 +104,20 @@ jobs:
             fi
             sleep 2
           done
-        
           echo '=== Current DB Revision ==='
           flask db current || echo 'No current revision (fresh database?)'
-        
           echo '=== Executing Migration ==='
           if flask db upgrade 2>&1; then
             echo '=== Migration Complete ==='
             flask db current
           else
             echo '::error::Migration failed'
-            echo 'Last revision:'
             flask db current || true
             exit 1
           fi
         " | tee "/tmp/migration_${TIMESTAMP}.log"
 
-        # 5. Final verification with retry
+        # 6️⃣ 最终健康检查
         echo "✅ Verifying deployment..."
         for i in {1..10}; do
           if docker compose exec -T backend curl -sf http://localhost:5000/health > /dev/null; then
@@ -140,8 +134,8 @@ jobs:
 
         echo "🎉 Deployment successful!"
         echo "Logs: $LOG_FILE"
-        
-        # 6. Cleanup old containers and images
+
+        # 7️⃣ 清理旧容器和镜像
         echo "🧹 Cleaning up..."
         docker system prune -f --filter "until=24h"
         EOF

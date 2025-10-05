@@ -141,7 +141,7 @@ jobs:
           fi
           MIGRATE_EOF
           
-          chmod +x /tmp/migrate.sh
+          chmod +x /migrate.sh
           docker compose --env-file "\$ENV_FILE" exec -T backend bash -c "cd /memao-backend && /tmp/migrate.sh" | tee "/tmp/migration_\${TIMESTAMP}.log"
           rm -f /tmp/migrate.sh
           

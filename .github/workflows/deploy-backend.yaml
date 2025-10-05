@@ -10,6 +10,8 @@ jobs:
     timeout-minutes: 25
     env:
       FLASK_APP: "app.py"
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
 
     steps:
     - name: Checkout Repository

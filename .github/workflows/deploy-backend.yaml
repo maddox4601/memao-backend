@@ -107,33 +107,34 @@ jobs:
           
           # 5️⃣ 数据库迁移
           echo "🛠️ Executing database migration..."
-          docker compose --env-file "\$ENV_FILE" exec -T backend bash -c "
-            set -eo pipefail
-            export PYTHONPATH=/app
-            echo 'Checking database connection...'
-            for i in \$(seq 1 30); do
-              if flask db current &>/dev/null; then
-                echo 'DB connected ✅'
-                break
-              fi
-              if [ \$i -eq 30 ]; then
-                echo '::error::Failed to connect to database via flask'
-                exit 1
-              fi
-              sleep 2
-            done
-            echo '=== Current DB Revision ==='
-            flask db current || echo 'No current revision (fresh database?)'
-            echo '=== Executing Migration ==='
-            if flask db upgrade 2>&1; then
-              echo '=== Migration Complete ==='
-              flask db current
-            else
-              echo '::error::Migration failed'
-              flask db current || true
+          docker compose --env-file "$ENV_FILE" exec -T backend bash -c "
+          set -eo pipefail
+          export PYTHONPATH=/app
+          echo \"Checking database connection...\"
+          for i in \$(seq 1 30); do
+            if flask db current &>/dev/null; then
+              echo \"DB connected ✅\"
+              break
+            fi
+            if [ \$i -eq 30 ]; then
+              echo \"::error::Failed to connect to database via flask\"
               exit 1
             fi
-          " | tee "/tmp/migration_\${TIMESTAMP}.log"
+            sleep 2
+          done
+          echo \"=== Current DB Revision ===\"
+          flask db current || echo \"No current revision (fresh database?)\"
+          echo \"=== Executing Migration ===\"
+          if flask db upgrade 2\>\&1; then
+            echo \"=== Migration Complete ===\"
+            flask db current
+          else
+            echo \"::error::Migration failed\"
+            flask db current || true
+            exit 1
+          fi
+          " | tee "/tmp/migration_${TIMESTAMP}.log"
+
           
           # 6️⃣ 最终健康检查
           echo "✅ Verifying deployment..."

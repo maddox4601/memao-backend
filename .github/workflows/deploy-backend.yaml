@@ -109,7 +109,7 @@ jobs:
           # 5️⃣ 数据库迁移
           echo "🛠️ Executing database migration..."
           # 创建迁移脚本
-          cat > /tmp/migrate.sh << MIGRATE_EOF
+          cat > /migrate.sh << MIGRATE_EOF
           #!/bin/bash
           set -eo pipefail
           export PYTHONPATH=/memao-backend

@@ -36,6 +36,7 @@ class GoogleOAuthClient:
             f"&access_type=offline"
             f"&prompt=select_account"
         )
+        print('client id',self.client_id)
         return auth_url
 
     def exchange_code_for_token(self, code):

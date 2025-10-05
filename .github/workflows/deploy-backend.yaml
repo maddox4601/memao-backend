@@ -79,8 +79,8 @@ jobs:
           ENV_FILE="\$DEPLOY_DIR/.env.pro"
           touch "\$ENV_FILE"
           grep -v "GOOGLE_CLIENT_" "\$ENV_FILE" > "\$ENV_FILE.tmp" || true
-          echo "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" >> "\$ENV_FILE.tmp"
-          echo "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" >> "\$ENV_FILE.tmp"
+          echo "GOOGLE_CLIENT_ID=\$GOOGLE_CLIENT_ID" >> "\$ENV_FILE.tmp"
+          echo "GOOGLE_CLIENT_SECRET=\$GOOGLE_CLIENT_SECRET" >> "\$ENV_FILE.tmp"
           mv "\$ENV_FILE.tmp" "\$ENV_FILE"
           
           # 3️⃣ 重建 Docker 容器
@@ -108,33 +108,42 @@ jobs:
           
           # 5️⃣ 数据库迁移
           echo "🛠️ Executing database migration..."
-          docker compose --env-file "\$ENV_FILE" exec -T backend bash -c "
+          # 创建迁移脚本
+          cat > /tmp/migrate.sh << MIGRATE_EOF
+          #!/bin/bash
           set -eo pipefail
           export PYTHONPATH=/app
-          echo \"Checking database connection...\"
-          for i in \$(seq 1 30); do
+          
+          echo "Checking database connection..."
+          for i in \\$(seq 1 30); do
             if flask db current &>/dev/null; then
-              echo \"DB connected ✅\"
+              echo "DB connected ✅"
               break
             fi
-            if [ \$i -eq 30 ]; then
-              echo \"::error::Failed to connect to database via flask\"
+            if [ \\$i -eq 30 ]; then
+              echo "::error::Failed to connect to database via flask"
               exit 1
             fi
             sleep 2
           done
-          echo \"=== Current DB Revision ===\"
-          flask db current || echo \"No current revision (fresh database?)\"
-          echo \"=== Executing Migration ===\"
-          if flask db upgrade 2\>\&1; then
-            echo \"=== Migration Complete ===\"
+          
+          echo "=== Current DB Revision ==="
+          flask db current || echo "No current revision (fresh database?)"
+          
+          echo "=== Executing Migration ==="
+          if flask db upgrade 2>&1; then
+            echo "=== Migration Complete ==="
             flask db current
           else
-            echo \"::error::Migration failed\"
+            echo "::error::Migration failed"
             flask db current || true
             exit 1
           fi
-          " | tee "/tmp/migration_\${TIMESTAMP}.log"
+          MIGRATE_EOF
+          
+          chmod +x /tmp/migrate.sh
+          docker compose --env-file "\$ENV_FILE" exec -T backend bash -c "cd /app && /tmp/migrate.sh" | tee "/tmp/migration_\${TIMESTAMP}.log"
+          rm -f /tmp/migrate.sh
           
           # 6️⃣ 最终健康检查
           echo "✅ Verifying deployment..."

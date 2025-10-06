@@ -63,7 +63,7 @@ jobs:
            cd \$DEPLOY_DIR || exit 1; \
         
            # 1️⃣ 拉取最新代码
-           if [ ! -d .git ]; then
+           if [ ! -d .git ]; then \
              git init; \
              git remote add origin https://github.com/your/repo.git; \
            fi; \
@@ -95,23 +95,22 @@ jobs:
              flask db upgrade\"; \
            
            echo '🔍 Testing database connection...'
-           docker compose --env-file .env.pro exec -T backend bash -c "set -eo pipefail; 
-           python -c "
-            import os
-            import sqlalchemy
-            db_url = os.getenv('DATABASE_URL')
-            if not db_url:
-                print('::error::DATABASE_URL not set')
-                exit(1)
-            try:
-                engine = sqlalchemy.create_engine(db_url)
-                with engine.connect() as conn:
-                    result = conn.execute(sqlalchemy.text('SELECT 1'))
-                print('✅ Database connection OK')
-            except Exception as e:
-                print('::error::Database connection failed:', e)
-                exit(1)
-            "
+           docker compose --env-file .env.pro exec -T backend bash -c 'set -eo pipefail; python -c \"\
+import os\n\
+import sqlalchemy\n\
+db_url = os.getenv(\\\"DATABASE_URL\\\")\n\
+if not db_url:\n\
+    print(\\\"::error::DATABASE_URL not set\\\")\n\
+    exit(1)\n\
+try:\n\
+    engine = sqlalchemy.create_engine(db_url)\n\
+    with engine.connect() as conn:\n\
+        result = conn.execute(sqlalchemy.text(\\\"SELECT 1\\\"))\n\
+    print(\\\"✅ Database connection OK\\\")\n\
+except Exception as e:\n\
+    print(\\\"::error::Database connection failed:\\\", e)\n\
+    exit(1)\n\
+\"'
 
            # 6️⃣ 健康检查
            for i in {1..10}; do \

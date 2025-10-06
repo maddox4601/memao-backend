@@ -80,28 +80,16 @@ jobs:
            docker compose --env-file .env.pro up -d --build; \
         
            # 4️⃣ 等待 MySQL 健康
-           echo "⏳ Waiting for MySQL to be healthy..."
-           for i in $(seq 1 $DB_WAIT_TIMEOUT); do
-          if docker compose ps mysql | grep -q "healthy"; then
-            DB_READY=true
-            break
-          fi
-          sleep 2
-          echo "Waiting...($i/$DB_WAIT_TIMEOUT)"
-        done
-        if ! $DB_READY; then
-          echo "::error::MySQL startup timed out"
-          docker compose logs mysql
-          exit 1
-        fi
-
+           DB_READY=false; \
+           for i in \$(seq 1 120); do \
+             if docker compose ps mysql | grep -q 'healthy'; then DB_READY=true; break; fi; sleep 2; \
+           done; \
+           if ! \$DB_READY; then echo '::error::MySQL startup timed out'; docker compose logs mysql; exit 1; fi; \
            
            # 5️⃣ 数据库迁移
-           echo "🛠️ Executing database migration..."
            docker compose --env-file .env.pro exec -T backend bash -c \"set -eo pipefail; export PYTHONPATH=/app; \
              for i in \$(seq 1 30); do \
-               if flask db current &>/dev/null; then then
-              echo 'DB connected ✅'  break; fi; sleep 2; \
+               if flask db current &>/dev/null; then break; fi; sleep 2; \
              done; \
              flask db upgrade\"; \
            

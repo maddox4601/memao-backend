@@ -111,8 +111,7 @@ jobs:
                   print('✅ Database connection OK:', result.scalar())
           except Exception as e:
               print('::error::Database connection failed:', e)
-              exit(1)
-          PYCODE"
+              exit(1) PYCODE"
 
            # 6️⃣ 健康检查
            for i in {1..10}; do \

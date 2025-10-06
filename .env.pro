@@ -66,7 +66,7 @@ MAIN_SERVER_URL=https://www.memao.org
 
 # Google OAuth-
 # ID SECRET-GIT Action
-GOOGLE_REDIRECT_URI=https://www.memao.com/api/socialauth/google/callback
+GOOGLE_REDIRECT_URI=https://www.memao.org/api/socialauth/google/callback
 
 # Google OAuth2 端点-
 GOOGLE_AUTH_URL=https://accounts.google.com/o/oauth2/v2/auth

@@ -99,7 +99,7 @@ jobs:
           docker compose --env-file .env.pro exec -T backend bash -c "set -eo pipefail; \
             python - <<'PYCODE'
           import os, sqlalchemy
-          db_url = os.getenv('DATABASE_URL') or os.getenv('SQLALCHEMY_DATABASE_URI')
+          db_url = os.getenv('DATABASE_URL') or os.getenv('DB_URI')
           if not db_url:
               print('::error::DATABASE_URL not set in environment')
               exit(1)

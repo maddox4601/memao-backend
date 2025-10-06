@@ -92,6 +92,28 @@ jobs:
                if flask db current &>/dev/null; then break; fi; sleep 2; \
              done; \
              flask db upgrade\"; \
+        
+        
+          # 5️⃣.5️⃣ 数据库连接检测
+          echo "🔍 Testing database connection..."
+          docker compose --env-file .env.pro exec -T backend bash -c "set -eo pipefail; \
+            python - <<'PYCODE'
+          import os, sqlalchemy
+          db_url = os.getenv('DATABASE_URL') or os.getenv('SQLALCHEMY_DATABASE_URI')
+          if not db_url:
+              print('::error::DATABASE_URL not set in environment')
+              exit(1)
+          try:
+              engine = sqlalchemy.create_engine(db_url)
+              with engine.connect() as conn:
+                  result = conn.execute('SELECT 1')
+                  print('✅ Database connection OK:', result.scalar())
+          except Exception as e:
+              print('::error::Database connection failed:', e)
+              exit(1)
+          PYCODE
+          "
+
            
            # 6️⃣ 健康检查
            for i in {1..10}; do \

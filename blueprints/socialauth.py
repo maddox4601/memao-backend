@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, session,redirect
 from extensions import db
-from models import SocialAccount
+from models import SocialAccount,User,UserAccount
 from utils.twitter_client import twitter_client
 from utils.google_client import google_client
 
@@ -237,6 +237,30 @@ def google_callback():
         google_id = user_info.get("sub")
         email = user_info.get("email", "")
         name = user_info.get("name", "")
+
+        # 3️⃣ 查找是否已有 UserAccount
+        account = UserAccount.query.filter_by(provider="google", provider_uid=google_id).first()
+
+        if account:
+            # 已有绑定用户，更新 User 信息
+            user = User.query.get(account.user_id)
+            if user:
+                user.email = email or user.email
+                user.username = name or user.username
+        else:
+            # 创建新用户
+            user = User(email=email, username=name)
+            db.session.add(user)
+            db.session.flush()  # 拿到 user.id
+
+            # 创建 UserAccount 关联
+            account = UserAccount(
+                provider="google",
+                provider_uid=google_id,
+                user_id=user.id
+            )
+            db.session.add(account)
+        db.session.commit()
 
         # 3️⃣ 通知前端并关闭窗口
         html = f"""

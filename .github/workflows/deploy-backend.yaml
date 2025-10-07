@@ -57,7 +57,7 @@ jobs:
         echo "💚 健康检查..."
         for i in {1..10}; do
           STATUS=$(ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} \
-            "curl -sf -w '%{http_code}' -o /dev/null http://localhost:5000/health || echo '000'")
+            "docker compose exec -T backend curl -sf -w '%{http_code}' -o /dev/null http://localhost:5000/health || echo '000'")
           if [ "$STATUS" == "200" ]; then
             echo "✅ Backend healthy!"
             break
@@ -69,9 +69,10 @@ jobs:
 
         echo "🧹 清理旧容器和资源..."
         ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} \
-          "docker system prune -f --volumes --filter 'until=24h'" && \
+          "docker system prune -f --filter 'until=24h'" && \
           echo "✅ Docker cleanup completed!" || echo "⚠️ Docker prune failed"
-
+    
+    
 
     - name: Notify Status
       if: always()

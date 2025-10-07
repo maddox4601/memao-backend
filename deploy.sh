@@ -31,7 +31,7 @@ if ! $DB_READY; then echo 'MySQL startup timed out'; docker compose logs mysql; 
 
 # 数据库迁移
 echo "⚙️ 数据库迁移..."
-docker compose exec -it backend bash -c '
+docker compose exec -T backend bash -c '
 set -eo pipefail
 for i in $(seq 1 30); do
   if flask db current &>/dev/null; then break; fi

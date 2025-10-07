@@ -58,21 +58,14 @@ jobs:
          GOOGLE_CLIENT_SECRET='${{ secrets.GOOGLE_CLIENT_SECRET }}' \
          bash -s" < deploy.sh
         
-        echo "💚 健康检查..."
-        for i in {1..10}; do
-          STATUS=$(curl -sf -w "%{http_code}" -o /dev/null http://SERVER_IP:5000/health || echo "000")
-          if [ "$STATUS" == "200" ]; then
-            echo "✅ Backend healthy!"
-            break
-          else
-            echo "⏳ Waiting for backend health... ($i/10, status=$STATUS)"
-            sleep 3
-          fi
-        done
-    
-        echo "🧹 清理旧容器和资源..."
-        docker system prune -f --volumes --filter "until=24h" && \
-          echo "✅ Docker cleanup completed!" || echo "⚠️ Docker prune failed"
+        # 6️⃣ 健康检查
+           for i in {1..10}; do \
+             if docker compose exec -T backend curl -sf http://localhost:5000/health > /dev/null; then break; fi; \
+             sleep 3; \
+           done; \
+           echo '🎉 Deployment successful! Logs: \$LOG_FILE'; \
+           docker system prune -f --filter 'until=24h'"
+
 
     - name: Notify Status
       if: always()

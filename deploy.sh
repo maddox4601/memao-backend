@@ -30,6 +30,7 @@ done
 if ! $DB_READY; then echo 'MySQL startup timed out'; docker compose logs mysql; exit 1; fi
 
 # 数据库迁移
+echo "⚙️ 数据库迁移..."
 docker compose exec -T backend bash -c '
 set -eo pipefail
 for i in $(seq 1 30); do
@@ -39,18 +40,21 @@ done
 flask db upgrade
 '
 
-# 健康检查
+echo "💚 健康检查..."
 for i in {1..10}; do
-  if docker compose exec -T backend curl -sf http://localhost:5000/health > /dev/null; then
-    echo "✅ Backend healthy!"
+  docker compose exec -T backend curl -sf http://localhost:5000/health > /dev/null
+  if [ $? -eq 0 ]; then
+    echo "✅ Backend healthy!" >&2
     break
+  else
+    echo "⏳ Waiting for backend health... ($i/10)" >&2
+    sleep 3
   fi
-  echo "⏳ Waiting for backend health... ($i/10)"
-  sleep 3
 done
 
-echo "🎉 Deployment successful!"
+echo "🎉 Deployment successful!" >&2
 
-# 容器清理
-docker system prune -f --volumes --filter "until=24h" || echo "⚠️ Docker prune failed"
+echo "🧹 清理旧容器和资源..."
+docker system prune -f --volumes --filter "until=24h" && \
+  echo "✅ Docker cleanup completed!" || echo "⚠️ Docker prune failed"
 

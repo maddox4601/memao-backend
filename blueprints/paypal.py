@@ -42,7 +42,7 @@ def verify_paypal_order(order_id):
     return True, capture_data
 
 # -------------------------------
-# 2️⃣ 支付完成回调
+# 2️⃣ 支付完成回调-paypal订单
 # -------------------------------
 @paypal_bp.route("/payment-complete", methods=["POST"])
 def payment_complete():

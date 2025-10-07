@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+# 环境变量文件
+.env
+!.env.pro
+
 # Distribution / packaging
 .Python
 build/

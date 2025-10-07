@@ -77,8 +77,8 @@ jobs:
            echo \"GOOGLE_CLIENT_SECRET=\$GOOGLE_CLIENT_SECRET\" >> .env.pro; \
         
            # 3️⃣ 重建 Docker
-           docker compose --env-file .env.pro down --timeout 30; \
-           docker compose --env-file .env.pro up -d --build; \
+           docker compose --env-file /root/memao-backend/.env.pro down --timeout 30; \
+           docker compose --env-file /root/memao-backend/.env.pro up -d --build; \
         
            # 4️⃣ 等待 MySQL 健康
            DB_READY=false; \
@@ -88,7 +88,7 @@ jobs:
            if ! \$DB_READY; then echo '::error::MySQL startup timed out'; docker compose logs mysql; exit 1; fi; \
            
            # 5️⃣ 数据库迁移
-           docker compose --env-file .env.pro exec -T backend bash -c \"set -eo pipefail; export PYTHONPATH=/app; \
+           docker compose --env-file /root/memao-backend/.env.pro exec -T backend bash -c \"set -eo pipefail; export PYTHONPATH=/app; \
              for i in \$(seq 1 30); do \
                if flask db current &>/dev/null; then break; fi; sleep 2; \
              done; \

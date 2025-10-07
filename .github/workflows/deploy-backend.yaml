@@ -56,7 +56,23 @@ jobs:
         ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} \
         "GOOGLE_CLIENT_ID='${{ secrets.GOOGLE_CLIENT_ID }}' \
          GOOGLE_CLIENT_SECRET='${{ secrets.GOOGLE_CLIENT_SECRET }}' \
-         bash -s" < deploy.sh    
+         bash -s" < deploy.sh
+        
+        echo "💚 健康检查..."
+        for i in {1..10}; do
+          STATUS=$(curl -sf -w "%{http_code}" -o /dev/null http://SERVER_IP:5000/health || echo "000")
+          if [ "$STATUS" == "200" ]; then
+            echo "✅ Backend healthy!"
+            break
+          else
+            echo "⏳ Waiting for backend health... ($i/10, status=$STATUS)"
+            sleep 3
+          fi
+        done
+    
+        echo "🧹 清理旧容器和资源..."
+        docker system prune -f --volumes --filter "until=24h" && \
+          echo "✅ Docker cleanup completed!" || echo "⚠️ Docker prune failed"
 
     - name: Notify Status
       if: always()

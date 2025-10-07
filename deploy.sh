@@ -40,23 +40,5 @@ done
 flask db upgrade
 '
 
-echo "💚 健康检查..."
-for i in {1..10}; do
-  STATUS=$(docker compose exec -T backend curl -sf -w "%{http_code}" -o /dev/null http://localhost:5000/health || echo "000")
-  if [ "$STATUS" == "200" ]; then
-    echo "✅ Backend healthy!" >&2
-    break
-  else
-    echo "⏳ Waiting for backend health... ($i/10, status=$STATUS)" >&2
-    sleep 3
-  fi
-done
-
-echo "🧹 清理旧容器和资源..."
-docker system prune -f --volumes --filter "until=24h" | tee /dev/stderr && \
-  echo "✅ Docker cleanup completed!" || echo "⚠️ Docker prune failed"
-
-
-echo "🎉 Deployment successful!" >&2
 
 

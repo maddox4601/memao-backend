@@ -88,11 +88,11 @@ jobs:
            if ! \$DB_READY; then echo '::error::MySQL startup timed out'; docker compose logs mysql; exit 1; fi; \
            
            # 5️⃣ 数据库迁移
-           docker compose --env-file /root/memao-backend/.env.pro exec -T backend bash -c \"set -eo pipefail; export PYTHONPATH=/app; \
+           docker compose --env-file /root/memao-backend/.env.pro exec -T backend bash -c \'set -eo pipefail; export PYTHONPATH=/app; \
              for i in \$(seq 1 30); do \
                if flask db current &>/dev/null; then break; fi; sleep 2; \
              done; \
-             flask db upgrade\"; \
+             flask db upgrade\'; \
            
            # 6️⃣ 健康检查
            for i in {1..10}; do \

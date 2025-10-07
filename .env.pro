@@ -7,7 +7,7 @@ DB_USER=memao_prod_user
 DB_PASSWORD=Maddox1988@
 DB_ROOT_PASSWORD=Maddox1988@
 DB_NAME=memao_portal
-DB_URI=mysql+pymysql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
+DB_URI=mysql+pymysql://${DB_USER}:Maddox1988%40${DB_HOST}:${DB_PORT}/${DB_NAME}
 
 # ======================
 # Flask 安全配置

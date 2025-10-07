@@ -41,9 +41,16 @@ flask db upgrade
 
 # 健康检查
 for i in {1..10}; do
-  if docker compose exec -T backend curl -sf http://localhost:5000/health > /dev/null; then break; fi
+  if docker compose exec -T backend curl -sf http://localhost:5000/health > /dev/null; then
+    echo "✅ Backend healthy!"
+    break
+  fi
+  echo "⏳ Waiting for backend health... ($i/10)"
   sleep 3
 done
 
 echo "🎉 Deployment successful!"
-docker system prune -f --filter "until=24h"
+
+# 容器清理
+docker system prune -f --volumes --filter "until=24h" || echo "⚠️ Docker prune failed"
+

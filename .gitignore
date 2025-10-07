@@ -7,8 +7,8 @@ __pycache__/
 *.so
 
 # 环境变量文件
-.env
-!.env.pro
+#.env
+#!.env.pro
 
 # Distribution / packaging
 .Python

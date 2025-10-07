@@ -12,10 +12,10 @@ git reset --hard origin/master
 git clean -fd
 
 # 更新 .env.pro
-#sed -i '/GOOGLE_CLIENT_/d' .env.pro
-#echo "" >> .env.pro
-#echo "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" >> .env.pro
-#echo "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" >> .env.pro
+sed -i '/GOOGLE_CLIENT_/d' .env.pro
+echo "" >> .env.pro
+echo "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" >> .env.pro
+echo "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" >> .env.pro
 
 # 重建 Docker
 docker compose --env-file .env.pro down --timeout 30

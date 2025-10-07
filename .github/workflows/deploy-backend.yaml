@@ -52,6 +52,12 @@ jobs:
         fi
         
 
+        # 通过 ssh 传递环境变量到远程 shell
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} \
+        "GOOGLE_CLIENT_ID='${{ secrets.GOOGLE_CLIENT_ID }}' \
+         GOOGLE_CLIENT_SECRET='${{ secrets.GOOGLE_CLIENT_SECRET }}' \
+         bash -s" < deploy.sh
+
     - name: Health check & Docker cleanup
       run: |
         echo "💚 健康检查..."
@@ -70,8 +76,7 @@ jobs:
         ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} \
           "docker system prune -f --filter 'until=24h'" && \
           echo "✅ Docker cleanup completed!" || echo "⚠️ Docker prune failed"
-    
-    
+
 
     - name: Notify Status
       if: always()

@@ -18,8 +18,8 @@ echo "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" >> .env.pro
 echo "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" >> .env.pro
 
 # 重建 Docker
-docker compose --env-file /root/memao-backend/.env.pro down --timeout 30
-docker compose --env-file /root/memao-backend/.env.pro up -d --build
+docker compose --env-file .env.pro down --timeout 30
+docker compose --env-file .env.pro up -d --build
 
 # 等待 MySQL 健康
 DB_READY=false

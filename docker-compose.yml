@@ -8,7 +8,6 @@ services:
       - GUNICORN_CMD_ARGS=--workers=1 --bind=:5000 --timeout=120 --worker-class=eventlet --access-logfile=- --error-logfile=-
       - GOOGLE_CLIENT_ID
       - GOOGLE_CLIENT_SECRET
-      - DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
     expose:
       - "5000"
     healthcheck:

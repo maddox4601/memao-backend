@@ -23,6 +23,7 @@ from blueprints.socialauth import socialauth_bp
 from blueprints.paypal import paypal_bp
 from geoip_utils.geoip_bp import geoip_bp
 from blueprints.login import login_bp
+from blueprints.eth import eth_bp
 
 load_dotenv()
 
@@ -67,7 +68,8 @@ def create_app():
         invite_bp,
         socialauth_bp,
         paypal_bp,
-        login_bp
+        login_bp,
+        eth_bp
     ]
     for bp in blueprints:
         app.register_blueprint(bp)

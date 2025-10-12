@@ -36,7 +36,11 @@ def create_app():
     # ===== 配置 =====
     app.config.update(
         SECRET_KEY=os.getenv('SECRET_KEY'),
-        JWT_SECRET=os.getenv('JWT_SECRET'),
+        JWT_SECRET_KEY=os.getenv('JWT_SECRET'), # ⚠️ 注意 Flask-JWT-Extended 要求是 JWT_SECRET_KEY
+        JWT_TOKEN_LOCATION=["headers"],  # ⚠️ 必须配置
+        JWT_HEADER_NAME="Authorization",  # Header 名称
+        JWT_HEADER_TYPE="Bearer",  # Bearer 类型
+        JWT_IDENTITY_CLAIM="sub",  # 默认身份字段
         SESSION_TYPE=os.getenv('SESSION_TYPE', 'filesystem'),
         SESSION_PERMANENT=os.getenv('SESSION_PERMANENT', 'False') == 'True',
         SESSION_COOKIE_SAMESITE=None,  # 支持跨站点

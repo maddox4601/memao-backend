@@ -11,6 +11,7 @@ class PaymentStatusEnum(Enum):
 
 class DeployStatusEnum(Enum):
     pending = "pending"  # 钱包未绑定 / 未 mint
+    processing = "processing"  # 添加这个状态
     success = "success"  # 已 mint 到用户钱包
     failed = "failed"    # mint 失败
 
@@ -19,6 +20,7 @@ class PayPalOrder(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     order_id = db.Column(db.String(128), unique=True, nullable=False)  # PayPal 订单号
+    user_id = db.Column(db.String(128), db.ForeignKey("users.id"), nullable=True)  # 关联用户，可为空（兼容未登录）
     token_name = db.Column(db.String(64), nullable=False)
     symbol = db.Column(db.String(16), nullable=False)
     supply = db.Column(db.BigInteger, nullable=False)

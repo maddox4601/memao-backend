@@ -9,6 +9,7 @@ class EthOrder(db.Model):
     __tablename__ = "eth_orders"
 
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.String(128), db.ForeignKey("users.id"), nullable=True, index=True)  # ✅ 新增，关联用户表
     order_id = db.Column(db.String(64), unique=True, nullable=False, index=True)   # 前端生成的订单 id（如 eth-<timestamp>）
     token_address = db.Column(db.String(66), nullable=True, index=True)            # token 合约地址（0x...）
     wallet_address = db.Column(db.String(66), nullable=True, index=True)           # 用户钱包地址

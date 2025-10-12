@@ -6,7 +6,6 @@ annotated-types==0.7.0
 APScheduler==3.11.0
 async-timeout==5.0.1
 attrs==25.3.0
-backports.zoneinfo==0.2.1
 bidict==0.23.1
 bitarray==3.4.2
 blinker==1.8.2
